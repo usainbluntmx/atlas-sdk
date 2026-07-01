@@ -1,0 +1,26 @@
+{
+  "name": "@atlas-world/sdk",
+  "version": "1.0.0",
+  "description": "Atlas World Protocol — SDK for building persistent worlds on Solana",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "dev": "tsc --project tsconfig.json --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@atlas-world/core": "workspace:*",
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/web3.js": "^1.98.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "keywords": [
+    "solana", "anchor", "gamefi", "web3", "gaming",
+    "persistent-world", "blockchain", "sdk"
+  ],
+  "license": "MIT"
+}

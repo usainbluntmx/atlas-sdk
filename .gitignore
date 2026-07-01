@@ -1,0 +1,34 @@
+.anchor
+.DS_Store
+target
+**/*.rs.bk
+node_modules
+test-ledger
+.yarn
+
+# SDK build outputs
+core/dist
+sdk/dist
+react/dist
+
+# Compiled JS leaking into src (shouldn't happen, but guard anyway)
+core/src/*.js
+core/src/*.js.map
+core/src/*.d.ts
+core/src/*.d.ts.map
+sdk/src/*.js
+sdk/src/*.js.map
+sdk/src/*.d.ts
+sdk/src/*.d.ts.map
+react/src/*.js
+react/src/*.js.map
+react/src/*.d.ts
+react/src/*.d.ts.map
+
+# Lockfiles — nos quedamos solo con pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Env
+.env
+.env.local

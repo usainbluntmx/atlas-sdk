@@ -1,0 +1,7 @@
+packages:
+  - 'core'
+  - 'sdk'
+  - 'react'
+allowBuilds:
+  bufferutil: true
+  utf-8-validate: true
