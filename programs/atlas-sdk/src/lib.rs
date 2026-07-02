@@ -132,6 +132,24 @@ pub mod atlas {
         Ok(())
     }
 
+    /// Crea el WorldState para el epoch actual después de un WorldReset.
+    /// Debe llamarse junto con create_leaderboard cuando el authority
+    /// recibe el evento WorldReset. Sin esto, la siguiente recolecta
+    /// del nuevo epoch fallaría porque el WorldState no existiría.
+    pub fn advance_epoch(ctx: Context<AdvanceEpoch>) -> Result<()> {
+        let world_config = &ctx.accounts.world_config;
+        let world_state = &mut ctx.accounts.world_state;
+        let clock = Clock::get()?;
+
+        world_state.world_id = world_config.world_id;
+        world_state.epoch = world_config.current_epoch;
+        world_state.resources_collected = 0;
+        world_state.started_at = clock.unix_timestamp;
+        world_state.bump = ctx.bumps.world_state;
+
+        Ok(())
+    }
+
     // ─── Players ─────────────────────────────────────────────────────────────
 
     /// Mintea un Player en un mundo público.
@@ -442,6 +460,33 @@ pub struct CreateLeaderboard<'info> {
         bump
     )]
     pub leaderboard: Account<'info, Leaderboard>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct AdvanceEpoch<'info> {
+    #[account(
+        seeds = [b"world_config", world_config.world_id.to_le_bytes().as_ref()],
+        bump = world_config.bump,
+        constraint = world_config.authority == authority.key() @ AtlasError::Unauthorized
+    )]
+    pub world_config: Account<'info, WorldConfig>,
+
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + WorldState::INIT_SPACE,
+        seeds = [
+            b"world_state",
+            world_config.world_id.to_le_bytes().as_ref(),
+            world_config.current_epoch.to_le_bytes().as_ref()
+        ],
+        bump
+    )]
+    pub world_state: Account<'info, WorldState>,
 
     #[account(mut)]
     pub authority: Signer<'info>,

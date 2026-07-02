@@ -102,6 +102,12 @@ export interface World {
   exhausted: boolean
   /** Segundos restantes del epoch (-1 si no hay límite de tiempo activo) */
   secondsRemaining: number
+  /**
+   * true si el epoch avanzó (WorldReset) pero el authority aún no llamó
+   * advanceEpoch() para crear el WorldState del nuevo epoch.
+   * Mientras esto sea true, collect_resource fallará.
+   */
+  pendingAdvance: boolean
 }
 
 /** Player en un mundo específico */

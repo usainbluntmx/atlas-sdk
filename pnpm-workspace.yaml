@@ -5,3 +5,5 @@ packages:
 allowBuilds:
   bufferutil: true
   utf-8-validate: true
+minimumReleaseAgeExclude:
+  - '@types/node@26.1.0'

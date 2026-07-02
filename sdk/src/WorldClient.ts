@@ -102,16 +102,28 @@ export class WorldClient {
 
   /**
    * Obtiene el estado completo de un mundo (config + state combinados).
+   *
+   * Nota: si el mundo acaba de resetear epoch (WorldReset emitido) pero el
+   * authority aún no llamó advanceEpoch(), el WorldState del nuevo epoch
+   * no existe todavía. En ese caso, `pendingAdvance` es true y `state`
+   * refleja valores en cero (mundo recién reseteado, sin recolectas aún).
    */
   async get(worldId: number): Promise<World | null> {
     const { program, programId } = this.client
 
+    let config: WorldConfig
     try {
       const [worldConfigPDA] = getWorldConfigPDA(worldId, programId)
       const configRaw = await (program.account as any).worldConfig.fetch(worldConfigPDA)
-      const config = this._parseConfig(configRaw)
+      config = this._parseConfig(configRaw)
+    } catch {
+      // El WorldConfig no existe — el mundo nunca se creó
+      return null
+    }
 
-      const [worldStatePDA] = getWorldStatePDA(worldId, config.currentEpoch, programId)
+    const [worldStatePDA] = getWorldStatePDA(worldId, config.currentEpoch, programId)
+
+    try {
       const stateRaw = await (program.account as any).worldState.fetch(worldStatePDA)
       const state = this._parseState(stateRaw)
 
@@ -119,9 +131,24 @@ export class WorldClient {
       const exhausted = state.resourcesCollected >= config.totalResources
       const secondsRemaining = epochSecondsRemaining(state.startedAt, config.epochDuration)
 
-      return { config, state, progress, exhausted, secondsRemaining }
+      return { config, state, progress, exhausted, secondsRemaining, pendingAdvance: false }
     } catch {
-      return null
+      // WorldState del epoch actual no existe todavía — pendiente de advanceEpoch()
+      const state: WorldState = {
+        worldId,
+        epoch: config.currentEpoch,
+        resourcesCollected: 0,
+        startedAt: 0,
+        bump: 0,
+      }
+      return {
+        config,
+        state,
+        progress: 0,
+        exhausted: false,
+        secondsRemaining: -1,
+        pendingAdvance: true,
+      }
     }
   }
 
@@ -182,6 +209,88 @@ export class WorldClient {
     }
   }
 
+  /**
+   * Avanza al siguiente epoch después de un WorldReset.
+   * Crea el WorldState para el nuevo epoch (current_epoch en WorldConfig).
+   * Debe llamarse junto con createLeaderboard cuando el authority
+   * recibe el evento WorldReset. Sin esto, la siguiente recolecta fallaría.
+   *
+   * Solo puede llamarla el authority del mundo.
+   *
+   * @example
+   * atlas.world.subscribe(worldId, {
+   *   onWorldReset: async () => {
+   *     await atlas.world.advanceEpoch(worldId)
+   *     await atlas.world.createLeaderboard(worldId)
+   *   }
+   * })
+   */
+  async advanceEpoch(worldId: number): Promise<{ signature: string }> {
+    const { program, programId } = this.client
+    const authority = (program.provider as any).wallet.publicKey
+
+    const [worldConfigPDA] = getWorldConfigPDA(worldId, programId)
+    const worldConfig = await (program.account as any).worldConfig.fetch(worldConfigPDA)
+    const currentEpoch = Number(worldConfig.currentEpoch)
+
+    const [worldStatePDA] = getWorldStatePDA(worldId, currentEpoch, programId)
+
+    try {
+      const signature = await (program.methods as any)
+        .advanceEpoch()
+        .accounts({
+          worldConfig: worldConfigPDA,
+          worldState: worldStatePDA,
+          authority,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc()
+
+      return { signature }
+    } catch (err) {
+      throw parseError(err)
+    }
+  }
+
+  /**
+   * Crea el leaderboard para el epoch actual de un mundo.
+   * Debe llamarse después de create() (epoch 0) y después de cada advanceEpoch().
+   * Solo puede llamarla el authority del mundo.
+   */
+  async createLeaderboard(worldId: number): Promise<{ signature: string }> {
+    const { program, programId } = this.client
+    const authority = (program.provider as any).wallet.publicKey
+
+    const [worldConfigPDA] = getWorldConfigPDA(worldId, programId)
+    const worldConfig = await (program.account as any).worldConfig.fetch(worldConfigPDA)
+    const currentEpoch = Number(worldConfig.currentEpoch)
+
+    const worldIdBuf = Buffer.alloc(8)
+    worldIdBuf.writeBigUInt64LE(BigInt(worldId))
+    const epochBuf = Buffer.alloc(8)
+    epochBuf.writeBigUInt64LE(BigInt(currentEpoch))
+    const [leaderboardPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('leaderboard'), worldIdBuf, epochBuf],
+      programId
+    )
+
+    try {
+      const signature = await (program.methods as any)
+        .createLeaderboard()
+        .accounts({
+          worldConfig: worldConfigPDA,
+          leaderboard: leaderboardPDA,
+          authority,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc()
+
+      return { signature }
+    } catch (err) {
+      throw parseError(err)
+    }
+  }
+
   // ─── Helpers privados ───────────────────────────────────────────────────────
 
   private _parseConfig(raw: any): WorldConfig {
@@ -189,8 +298,8 @@ export class WorldClient {
       worldId: Number(raw.worldId),
       authority: raw.authority.toBase58(),
       name: raw.name,
-      worldType: Number(raw.worldType) as WorldType,
-      visibility: Number(raw.visibility) as WorldVisibility,
+      worldType: this._parseWorldType(raw.worldType),
+      visibility: this._parseVisibility(raw.visibility),
       totalResources: Number(raw.totalResources),
       epochDuration: Number(raw.epochDuration),
       globalCooldown: Number(raw.globalCooldown),
@@ -230,5 +339,31 @@ export class WorldClient {
     return visibility === WorldVisibility.Public
       ? { public: {} }
       : { private: {} }
+  }
+
+  /**
+   * Anchor serializa enums de Rust sin datos como objetos:
+   * WorldType::Gaming → { gaming: {} }
+   * Esta función convierte esa forma de vuelta al enum numérico de TypeScript.
+   */
+  private _parseWorldType(raw: any): WorldType {
+    if (typeof raw === 'number') return raw as WorldType // fallback si ya viene numérico
+    if ('gaming' in raw) return WorldType.Gaming
+    if ('defi' in raw) return WorldType.Defi
+    if ('dao' in raw) return WorldType.Dao
+    if ('marketplace' in raw) return WorldType.Marketplace
+    if ('custom' in raw) return WorldType.Custom
+    throw new Error(`WorldType desconocido: ${JSON.stringify(raw)}`)
+  }
+
+  /**
+   * Anchor serializa WorldVisibility::Private como { private: {} }.
+   * Esta función lo convierte de vuelta al enum numérico de TypeScript.
+   */
+  private _parseVisibility(raw: any): WorldVisibility {
+    if (typeof raw === 'number') return raw as WorldVisibility
+    if ('public' in raw) return WorldVisibility.Public
+    if ('private' in raw) return WorldVisibility.Private
+    throw new Error(`WorldVisibility desconocido: ${JSON.stringify(raw)}`)
   }
 }

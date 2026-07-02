@@ -89,6 +89,100 @@
       ]
     },
     {
+      "name": "advance_epoch",
+      "docs": [
+        "Crea el WorldState para el epoch actual después de un WorldReset.",
+        "Debe llamarse junto con create_leaderboard cuando el authority",
+        "recibe el evento WorldReset. Sin esto, la siguiente recolecta",
+        "del nuevo epoch fallaría porque el WorldState no existiría."
+      ],
+      "discriminator": [
+        93,
+        138,
+        234,
+        218,
+        241,
+        230,
+        132,
+        38
+      ],
+      "accounts": [
+        {
+          "name": "world_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  111,
+                  114,
+                  108,
+                  100,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "world_config.world_id",
+                "account": "WorldConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "world_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  111,
+                  114,
+                  108,
+                  100,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "world_config.world_id",
+                "account": "WorldConfig"
+              },
+              {
+                "kind": "account",
+                "path": "world_config.current_epoch",
+                "account": "WorldConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "collect_resource",
       "discriminator": [
         159,
