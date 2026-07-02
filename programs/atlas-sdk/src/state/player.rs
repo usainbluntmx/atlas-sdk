@@ -25,5 +25,10 @@ pub struct Player {
     /// Epoch en el que se registran los recursos_collected actuales
     /// Al cambiar de epoch, el frontend puede re-fetchear y mostrar el historial
     pub current_epoch: u64,
+    /// Recolectas realizadas en el día actual (rate limiting anti-sybil)
+    pub daily_collect_count: u32,
+    /// Unix timestamp del inicio del día actual de rate limiting.
+    /// Se resetea daily_collect_count a 0 cuando pasan 24h desde este valor.
+    pub daily_window_started_at: i64,
     pub bump: u8,
 }

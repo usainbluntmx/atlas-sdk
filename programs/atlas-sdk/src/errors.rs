@@ -43,4 +43,10 @@ pub enum AtlasError {
 
     #[msg("epoch_duration debe ser mayor a 0")]
     InvalidEpochDuration,           // 6013
+
+    #[msg("El protocolo está pausado temporalmente por mantenimiento")]
+    ProtocolPaused,                 // 6014
+
+    #[msg("Alcanzaste el límite diario de recolectas para este mundo")]
+    DailyLimitReached,              // 6015
 }

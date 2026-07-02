@@ -65,3 +65,15 @@ pub struct PlayerRemovedFromWhitelist {
     pub world_id: u64,
     pub member: Pubkey,
 }
+
+/// Emitido cuando el protocol_authority activa el emergency stop
+#[event]
+pub struct ProtocolPaused {
+    pub by: Pubkey,
+}
+
+/// Emitido cuando el protocol_authority reactiva el protocolo
+#[event]
+pub struct ProtocolUnpaused {
+    pub by: Pubkey,
+}

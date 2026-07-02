@@ -135,6 +135,8 @@ export class PlayerClient {
       resourcesCollected: Number(raw.resourcesCollected),
       lastCollectTime: Number(raw.lastCollectTime),
       currentEpoch: Number(raw.currentEpoch),
+      dailyCollectCount: Number(raw.dailyCollectCount),
+      dailyWindowStartedAt: Number(raw.dailyWindowStartedAt),
       bump: raw.bump,
     }
   }

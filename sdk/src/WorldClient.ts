@@ -77,6 +77,7 @@ export class WorldClient {
           new BN(params.totalResources),
           new BN(epochDurationSeconds),
           new BN(params.globalCooldown ?? 5),
+          params.maxDailyCollects ?? 0,
           params.resourceTypes.map(rt => ({
             id: rt.id,
             name: rt.name,
@@ -310,6 +311,7 @@ export class WorldClient {
         cooldownSeconds: Number(rt.cooldownSeconds),
       })),
       currentEpoch: Number(raw.currentEpoch),
+      maxDailyCollects: Number(raw.maxDailyCollects),
       bump: raw.bump,
     }
   }

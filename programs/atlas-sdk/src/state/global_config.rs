@@ -15,6 +15,9 @@ pub struct GlobalConfig {
     pub private_world_fee: u64,
     /// Dirección del treasury donde van las fees
     pub treasury: Pubkey,
+    /// Emergency stop — si es true, create_world, mint_player y
+    /// collect_resource fallan en TODO el protocolo. No afecta lecturas.
+    pub paused: bool,
     pub bump: u8,
 }
 

@@ -15,6 +15,7 @@ use state::{
 };
 
 const LEVEL_THRESHOLD: u64 = 10;
+const DAILY_WINDOW_SECONDS: i64 = 24 * 60 * 60;
 
 #[program]
 pub mod atlas {
@@ -31,7 +32,79 @@ pub mod atlas {
         config.world_count = 0;
         config.private_world_fee = DEFAULT_PRIVATE_WORLD_FEE;
         config.treasury = treasury;
+        config.paused = false;
         config.bump = ctx.bumps.global_config;
+        Ok(())
+    }
+
+    /// Emergency stop — pausa create_world, mint_player y collect_resource
+    /// en TODO el protocolo. Las lecturas siguen funcionando normalmente.
+    /// Solo puede llamarla el protocol_authority.
+    pub fn pause_protocol(ctx: Context<ProtocolAdmin>) -> Result<()> {
+        ctx.accounts.global_config.paused = true;
+        emit!(crate::events::ProtocolPaused {
+            by: ctx.accounts.authority.key(),
+        });
+        Ok(())
+    }
+
+    /// Reactiva el protocolo después de una pausa de emergencia.
+    /// Solo puede llamarla el protocol_authority.
+    pub fn unpause_protocol(ctx: Context<ProtocolAdmin>) -> Result<()> {
+        ctx.accounts.global_config.paused = false;
+        emit!(crate::events::ProtocolUnpaused {
+            by: ctx.accounts.authority.key(),
+        });
+        Ok(())
+    }
+
+    /// ⚠️ SOLO PARA DESARROLLO — cierra GlobalConfig y devuelve el rent.
+    ///
+    /// Uso: cuando el layout de GlobalConfig cambia (se agregan/quitan campos)
+    /// durante desarrollo activo en devnet, las cuentas existentes quedan
+    /// con un layout incompatible. Esta instrucción permite cerrarla y
+    /// volver a llamar initialize_protocol con el layout nuevo.
+    ///
+    /// Cierra la cuenta MANUALMENTE sin deserializarla (por eso el contexto
+    /// usa UncheckedAccount) — así funciona incluso si el layout on-chain
+    /// ya no coincide con el struct GlobalConfig actual.
+    ///
+    /// NO debe existir en el contrato final de mainnet — antes del deploy
+    /// a mainnet, reemplazar por una estrategia de migración de cuentas
+    /// apropiada (versionado de accounts, o congelar el layout antes
+    /// del primer deploy productivo).
+    pub fn close_protocol(ctx: Context<CloseProtocol>) -> Result<()> {
+        let global_config_info = ctx.accounts.global_config.to_account_info();
+        let authority_info = ctx.accounts.authority.to_account_info();
+
+        let dest_starting_lamports = authority_info.lamports();
+        **authority_info.lamports.borrow_mut() = dest_starting_lamports
+            .checked_add(global_config_info.lamports())
+            .ok_or(AtlasError::InvalidTotalResources)?; // reuse error, monto overflow improbable
+        **global_config_info.lamports.borrow_mut() = 0;
+
+        let mut data = global_config_info.try_borrow_mut_data()?;
+        for byte in data.iter_mut() {
+            *byte = 0;
+        }
+
+        Ok(())
+    }
+
+    /// ⚠️ SOLO PARA DESARROLLO — ajusta world_count manualmente.
+    ///
+    /// Uso: después de close_protocol + initialize_protocol, world_count
+    /// vuelve a 0, pero las cuentas WorldConfig de mundos creados antes
+    /// de la migración siguen existiendo en sus PDAs originales. Esta
+    /// instrucción evita colisiones al crear mundos nuevos, saltando
+    /// el contador por encima del último world_id usado.
+    ///
+    /// NO debe existir en el contrato final de mainnet.
+    pub fn admin_set_world_count(
+        ctx: Context<ProtocolAdmin>,
+        new_count: u64,
+    ) -> Result<()> {
+        ctx.accounts.global_config.world_count = new_count;
         Ok(())
     }
 
@@ -45,8 +118,10 @@ pub mod atlas {
         total_resources: u64,
         epoch_duration: i64,
         global_cooldown: i64,
+        max_daily_collects: u32,
         resource_types: Vec<ResourceType>,
     ) -> Result<()> {
+        require!(!ctx.accounts.global_config.paused, AtlasError::ProtocolPaused);
         require!(name.len() <= 64, AtlasError::WorldNameTooLong);
         require!(total_resources > 0, AtlasError::InvalidTotalResources);
         require!(epoch_duration > 0, AtlasError::InvalidEpochDuration);
@@ -92,6 +167,7 @@ pub mod atlas {
         config.global_cooldown = global_cooldown;
         config.resource_types = resource_types;
         config.current_epoch = 0;
+        config.max_daily_collects = max_daily_collects;
         config.bump = ctx.bumps.world_config;
 
         let clock = Clock::get()?;
@@ -158,6 +234,7 @@ pub mod atlas {
         name: String,
         metadata_uri: String,
     ) -> Result<()> {
+        require!(!ctx.accounts.global_config.paused, AtlasError::ProtocolPaused);
         require!(name.len() <= 32, AtlasError::NameTooLong);
         require!(metadata_uri.len() <= 200, AtlasError::UriTooLong);
 
@@ -172,6 +249,8 @@ pub mod atlas {
         player.resources_collected = 0;
         player.last_collect_time = 0;
         player.current_epoch = world_config.current_epoch;
+        player.daily_collect_count = 0;
+        player.daily_window_started_at = 0;
         player.bump = ctx.bumps.player;
 
         emit!(crate::events::PlayerMinted {
@@ -190,6 +269,7 @@ pub mod atlas {
         name: String,
         metadata_uri: String,
     ) -> Result<()> {
+        require!(!ctx.accounts.global_config.paused, AtlasError::ProtocolPaused);
         require!(name.len() <= 32, AtlasError::NameTooLong);
         require!(metadata_uri.len() <= 200, AtlasError::UriTooLong);
 
@@ -209,6 +289,8 @@ pub mod atlas {
         player.resources_collected = 0;
         player.last_collect_time = 0;
         player.current_epoch = world_config.current_epoch;
+        player.daily_collect_count = 0;
+        player.daily_window_started_at = 0;
         player.bump = ctx.bumps.player;
 
         emit!(crate::events::PlayerMinted {
@@ -227,6 +309,8 @@ pub mod atlas {
         ctx: Context<CollectResource>,
         resource_type_id: u8,
     ) -> Result<()> {
+        require!(!ctx.accounts.global_config.paused, AtlasError::ProtocolPaused);
+
         let clock = Clock::get()?;
         let now = clock.unix_timestamp;
 
@@ -238,6 +322,7 @@ pub mod atlas {
 
         let points = resource_type.points;
         let cooldown = world_config.effective_cooldown(resource_type_id);
+        let max_daily = world_config.max_daily_collects;
 
         require!(
             now >= ctx.accounts.player.last_collect_time + cooldown,
@@ -253,6 +338,26 @@ pub mod atlas {
             ctx.accounts.leaderboard.epoch == world_config.current_epoch,
             AtlasError::EpochMismatch
         );
+
+        // ─── Rate limiting diario (anti-sybil / anti-farming) ──────────────
+        // Si max_daily_collects es 0, no hay límite.
+        if max_daily > 0 {
+            let player = &mut ctx.accounts.player;
+            let window_expired = now >= player.daily_window_started_at + DAILY_WINDOW_SECONDS;
+
+            if window_expired {
+                // Nueva ventana de 24h — resetear contador
+                player.daily_window_started_at = now;
+                player.daily_collect_count = 0;
+            }
+
+            require!(
+                player.daily_collect_count < max_daily,
+                AtlasError::DailyLimitReached
+            );
+
+            player.daily_collect_count += 1;
+        }
 
         ctx.accounts.world_state.resources_collected += 1;
         let world_progress = ctx.accounts.world_state.resources_collected;
@@ -396,6 +501,37 @@ pub struct InitializeProtocol<'info> {
 }
 
 #[derive(Accounts)]
+pub struct ProtocolAdmin<'info> {
+    #[account(
+        mut,
+        seeds = [b"atlas_config"],
+        bump = global_config.bump,
+        constraint = global_config.protocol_authority == authority.key() @ AtlasError::Unauthorized
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CloseProtocol<'info> {
+    /// CHECK: cerrado manualmente sin deserializar en el handler —
+    /// esto permite cerrar la cuenta aunque su layout ya no coincida
+    /// con el struct GlobalConfig actual. Solo verificamos que la
+    /// dirección derive correctamente desde las seeds del protocolo,
+    /// lo cual ya garantiza que es la cuenta correcta (no se puede
+    /// verificar protocol_authority sin deserializar, por eso esta
+    /// instrucción es solo para desarrollo — ver doc del handler).
+    #[account(
+        mut,
+        seeds = [b"atlas_config"],
+        bump
+    )]
+    pub global_config: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
 pub struct CreateWorld<'info> {
     #[account(
         mut,
@@ -496,6 +632,12 @@ pub struct AdvanceEpoch<'info> {
 #[derive(Accounts)]
 pub struct MintPlayer<'info> {
     #[account(
+        seeds = [b"atlas_config"],
+        bump = global_config.bump
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
+
+    #[account(
         seeds = [b"world_config", world_config.world_id.to_le_bytes().as_ref()],
         bump = world_config.bump
     )]
@@ -521,6 +663,12 @@ pub struct MintPlayer<'info> {
 
 #[derive(Accounts)]
 pub struct MintPlayerPrivate<'info> {
+    #[account(
+        seeds = [b"atlas_config"],
+        bump = global_config.bump
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
+
     #[account(
         seeds = [b"world_config", world_config.world_id.to_le_bytes().as_ref()],
         bump = world_config.bump
@@ -553,6 +701,12 @@ pub struct MintPlayerPrivate<'info> {
 
 #[derive(Accounts)]
 pub struct CollectResource<'info> {
+    #[account(
+        seeds = [b"atlas_config"],
+        bump = global_config.bump
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
+
     #[account(
         mut,
         seeds = [b"world_config", world_config.world_id.to_le_bytes().as_ref()],

@@ -10,12 +10,14 @@
  * await atlas.resource.collect({ worldId: 0, resourceTypeId: 0 })
  */
 
-import { Connection, PublicKey } from '@solana/web3.js'
+import { Connection, PublicKey, SystemProgram } from '@solana/web3.js'
 import { Program, AnchorProvider, setProvider } from '@coral-xyz/anchor'
 import {
   AtlasNetwork,
   ATLAS_PROGRAM_ID_DEVNET,
   RPC_ENDPOINTS,
+  getGlobalConfigPDA,
+  parseError,
 } from '@atlas-world/core'
 import { WorldClient } from './WorldClient'
 import { PlayerClient } from './PlayerClient'
@@ -75,5 +77,56 @@ export class AtlasClient {
     this.player = new PlayerClient(this)
     this.resource = new ResourceClient(this)
     this.leaderboard = new LeaderboardClient(this)
+  }
+
+  // ─── Administración del protocolo ────────────────────────────────────────
+  // Solo puede llamarlas la wallet configurada como protocol_authority
+  // en GlobalConfig (la que llamó initialize_protocol originalmente).
+
+  /**
+   * Emergency stop — pausa create_world, mint_player y collect_resource
+   * en TODO el protocolo. Las lecturas siguen funcionando con normalidad.
+   * Úsalo si se detecta un exploit o comportamiento anómalo grave.
+   */
+  async pauseProtocol(): Promise<{ signature: string }> {
+    const authority = (this.program.provider as any).wallet.publicKey
+    const [globalConfigPDA] = getGlobalConfigPDA(this.programId)
+
+    try {
+      const signature = await (this.program.methods as any)
+        .pauseProtocol()
+        .accounts({ globalConfig: globalConfigPDA, authority })
+        .rpc()
+      return { signature }
+    } catch (err) {
+      throw parseError(err)
+    }
+  }
+
+  /**
+   * Reactiva el protocolo después de una pausa de emergencia.
+   */
+  async unpauseProtocol(): Promise<{ signature: string }> {
+    const authority = (this.program.provider as any).wallet.publicKey
+    const [globalConfigPDA] = getGlobalConfigPDA(this.programId)
+
+    try {
+      const signature = await (this.program.methods as any)
+        .unpauseProtocol()
+        .accounts({ globalConfig: globalConfigPDA, authority })
+        .rpc()
+      return { signature }
+    } catch (err) {
+      throw parseError(err)
+    }
+  }
+
+  /**
+   * Verifica si el protocolo está actualmente pausado.
+   */
+  async isPaused(): Promise<boolean> {
+    const [globalConfigPDA] = getGlobalConfigPDA(this.programId)
+    const config = await (this.program.account as any).globalConfig.fetch(globalConfigPDA)
+    return Boolean(config.paused)
   }
 }

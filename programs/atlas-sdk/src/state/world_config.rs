@@ -65,6 +65,10 @@ pub struct WorldConfig {
     pub resource_types: Vec<ResourceType>,
     /// Epoch actual del mundo
     pub current_epoch: u64,
+    /// Máximo de recolectas por wallet por ventana de 24h.
+    /// 0 significa sin límite (no recomendado para mundos públicos grandes).
+    /// Protección anti-sybil / anti-farming a nivel de mundo.
+    pub max_daily_collects: u32,
     pub bump: u8,
 }
 

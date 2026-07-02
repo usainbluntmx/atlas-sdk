@@ -59,6 +59,8 @@ export interface GlobalConfig {
   worldCount: number
   privateWorldFee: number
   treasury: string
+  /** true si el protocolo está en emergency stop */
+  paused: boolean
   bump: number
 }
 
@@ -77,6 +79,8 @@ export interface WorldConfig {
   globalCooldown: number
   resourceTypes: ResourceType[]
   currentEpoch: number
+  /** Máximo de recolectas por wallet por ventana de 24h. 0 = sin límite. */
+  maxDailyCollects: number
   bump: number
 }
 
@@ -120,6 +124,10 @@ export interface Player {
   resourcesCollected: number
   lastCollectTime: number
   currentEpoch: number
+  /** Recolectas realizadas en la ventana de 24h actual */
+  dailyCollectCount: number
+  /** Unix timestamp de inicio de la ventana de 24h actual */
+  dailyWindowStartedAt: number
   bump: number
 }
 
@@ -158,6 +166,8 @@ export interface CreateWorldParams {
   epochDuration: number | string
   /** Cooldown global entre recolectas en segundos (default: 5) */
   globalCooldown?: number
+  /** Máximo de recolectas por wallet por 24h. 0 o undefined = sin límite. */
+  maxDailyCollects?: number
   resourceTypes: ResourceType[]
 }
 

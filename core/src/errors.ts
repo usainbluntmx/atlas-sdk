@@ -21,6 +21,8 @@ const ERROR_MESSAGES: Record<number, string> = {
   6011: 'La wallet ya está en la whitelist',
   6012: 'total_resources debe ser mayor a 0',
   6013: 'epoch_duration debe ser mayor a 0',
+  6014: 'El protocolo está pausado temporalmente por mantenimiento',
+  6015: 'Alcanzaste el límite diario de recolectas para este mundo',
 }
 
 /**

@@ -89,6 +89,67 @@
       ]
     },
     {
+      "name": "admin_set_world_count",
+      "docs": [
+        "⚠️ SOLO PARA DESARROLLO — ajusta world_count manualmente.",
+        "",
+        "Uso: después de close_protocol + initialize_protocol, world_count",
+        "vuelve a 0, pero las cuentas WorldConfig de mundos creados antes",
+        "de la migración siguen existiendo en sus PDAs originales. Esta",
+        "instrucción evita colisiones al crear mundos nuevos, saltando",
+        "el contador por encima del último world_id usado.",
+        "",
+        "NO debe existir en el contrato final de mainnet."
+      ],
+      "discriminator": [
+        240,
+        102,
+        102,
+        50,
+        155,
+        166,
+        55,
+        203
+      ],
+      "accounts": [
+        {
+          "name": "global_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  108,
+                  97,
+                  115,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_count",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "advance_epoch",
       "docs": [
         "Crea el WorldState para el epoch actual después de un WorldReset.",
@@ -183,6 +244,77 @@
       "args": []
     },
     {
+      "name": "close_protocol",
+      "docs": [
+        "⚠️ SOLO PARA DESARROLLO — cierra GlobalConfig y devuelve el rent.",
+        "",
+        "Uso: cuando el layout de GlobalConfig cambia (se agregan/quitan campos)",
+        "durante desarrollo activo en devnet, las cuentas existentes quedan",
+        "con un layout incompatible. Esta instrucción permite cerrarla y",
+        "volver a llamar initialize_protocol con el layout nuevo.",
+        "",
+        "Cierra la cuenta MANUALMENTE sin deserializarla (por eso el contexto",
+        "usa UncheckedAccount) — así funciona incluso si el layout on-chain",
+        "ya no coincide con el struct GlobalConfig actual.",
+        "",
+        "NO debe existir en el contrato final de mainnet — antes del deploy",
+        "a mainnet, reemplazar por una estrategia de migración de cuentas",
+        "apropiada (versionado de accounts, o congelar el layout antes",
+        "del primer deploy productivo)."
+      ],
+      "discriminator": [
+        120,
+        48,
+        77,
+        31,
+        195,
+        128,
+        45,
+        248
+      ],
+      "accounts": [
+        {
+          "name": "global_config",
+          "docs": [
+            "esto permite cerrar la cuenta aunque su layout ya no coincida",
+            "con el struct GlobalConfig actual. Solo verificamos que la",
+            "dirección derive correctamente desde las seeds del protocolo,",
+            "lo cual ya garantiza que es la cuenta correcta (no se puede",
+            "verificar protocol_authority sin deserializar, por eso esta",
+            "instrucción es solo para desarrollo — ver doc del handler)."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  108,
+                  97,
+                  115,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "collect_resource",
       "discriminator": [
         159,
@@ -195,6 +327,30 @@
         68
       ],
       "accounts": [
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  108,
+                  97,
+                  115,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
         {
           "name": "world_config",
           "writable": true,
@@ -580,6 +736,10 @@
           "type": "i64"
         },
         {
+          "name": "max_daily_collects",
+          "type": "u32"
+        },
+        {
           "name": "resource_types",
           "type": {
             "vec": {
@@ -744,6 +904,30 @@
       ],
       "accounts": [
         {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  108,
+                  97,
+                  115,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "world_config",
           "pda": {
             "seeds": [
@@ -838,6 +1022,30 @@
       ],
       "accounts": [
         {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  108,
+                  97,
+                  115,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "world_config",
           "pda": {
             "seeds": [
@@ -942,6 +1150,56 @@
       ]
     },
     {
+      "name": "pause_protocol",
+      "docs": [
+        "Emergency stop — pausa create_world, mint_player y collect_resource",
+        "en TODO el protocolo. Las lecturas siguen funcionando normalmente.",
+        "Solo puede llamarla el protocol_authority."
+      ],
+      "discriminator": [
+        144,
+        95,
+        0,
+        107,
+        119,
+        39,
+        248,
+        141
+      ],
+      "accounts": [
+        {
+          "name": "global_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  108,
+                  97,
+                  115,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "remove_from_whitelist",
       "discriminator": [
         7,
@@ -1021,6 +1279,55 @@
           "type": "pubkey"
         }
       ]
+    },
+    {
+      "name": "unpause_protocol",
+      "docs": [
+        "Reactiva el protocolo después de una pausa de emergencia.",
+        "Solo puede llamarla el protocol_authority."
+      ],
+      "discriminator": [
+        183,
+        154,
+        5,
+        183,
+        105,
+        76,
+        87,
+        18
+      ],
+      "accounts": [
+        {
+          "name": "global_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  108,
+                  97,
+                  115,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -1157,6 +1464,32 @@
       ]
     },
     {
+      "name": "ProtocolPaused",
+      "discriminator": [
+        35,
+        111,
+        245,
+        138,
+        237,
+        199,
+        79,
+        223
+      ]
+    },
+    {
+      "name": "ProtocolUnpaused",
+      "discriminator": [
+        248,
+        204,
+        112,
+        239,
+        72,
+        67,
+        127,
+        216
+      ]
+    },
+    {
       "name": "ResourceCollected",
       "discriminator": [
         47,
@@ -1266,6 +1599,16 @@
       "code": 6013,
       "name": "InvalidEpochDuration",
       "msg": "epoch_duration debe ser mayor a 0"
+    },
+    {
+      "code": 6014,
+      "name": "ProtocolPaused",
+      "msg": "El protocolo está pausado temporalmente por mantenimiento"
+    },
+    {
+      "code": 6015,
+      "name": "DailyLimitReached",
+      "msg": "Alcanzaste el límite diario de recolectas para este mundo"
     }
   ],
   "types": [
@@ -1307,6 +1650,14 @@
               "Dirección del treasury donde van las fees"
             ],
             "type": "pubkey"
+          },
+          {
+            "name": "paused",
+            "docs": [
+              "Emergency stop — si es true, create_world, mint_player y",
+              "collect_resource fallan en TODO el protocolo. No afecta lecturas."
+            ],
+            "type": "bool"
           },
           {
             "name": "bump",
@@ -1467,6 +1818,21 @@
             "type": "u64"
           },
           {
+            "name": "daily_collect_count",
+            "docs": [
+              "Recolectas realizadas en el día actual (rate limiting anti-sybil)"
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "daily_window_started_at",
+            "docs": [
+              "Unix timestamp del inicio del día actual de rate limiting.",
+              "Se resetea daily_collect_count a 0 cuando pasan 24h desde este valor."
+            ],
+            "type": "i64"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -1533,6 +1899,36 @@
           },
           {
             "name": "member",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProtocolPaused",
+      "docs": [
+        "Emitido cuando el protocol_authority activa el emergency stop"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "by",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProtocolUnpaused",
+      "docs": [
+        "Emitido cuando el protocol_authority reactiva el protocolo"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "by",
             "type": "pubkey"
           }
         ]
@@ -1745,6 +2141,15 @@
               "Epoch actual del mundo"
             ],
             "type": "u64"
+          },
+          {
+            "name": "max_daily_collects",
+            "docs": [
+              "Máximo de recolectas por wallet por ventana de 24h.",
+              "0 significa sin límite (no recomendado para mundos públicos grandes).",
+              "Protección anti-sybil / anti-farming a nivel de mundo."
+            ],
+            "type": "u32"
           },
           {
             "name": "bump",
