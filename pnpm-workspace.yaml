@@ -2,6 +2,7 @@ packages:
   - 'core'
   - 'sdk'
   - 'react'
+  - 'cli'
 allowBuilds:
   bufferutil: true
   utf-8-validate: true
