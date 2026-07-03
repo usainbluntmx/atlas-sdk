@@ -30,3 +30,17 @@ export { useWorld } from './useWorld'
 export { usePlayer } from './usePlayer'
 export { useLeaderboard } from './useLeaderboard'
 export { useCollect } from './useCollect'
+
+// Componentes visuales listos para usar — sin CSS externo requerido
+export { AtlasWorldProgress } from './components/AtlasWorldProgress'
+export type { AtlasWorldProgressProps } from './components/AtlasWorldProgress'
+export { AtlasLeaderboard } from './components/AtlasLeaderboard'
+export type { AtlasLeaderboardProps } from './components/AtlasLeaderboard'
+export { AtlasPlayerCard } from './components/AtlasPlayerCard'
+export type { AtlasPlayerCardProps } from './components/AtlasPlayerCard'
+export { AtlasCollectButton } from './components/AtlasCollectButton'
+export type { AtlasCollectButtonProps } from './components/AtlasCollectButton'
+
+// Theming
+export { defaultTheme, mergeTheme } from './theme'
+export type { AtlasTheme } from './theme'
