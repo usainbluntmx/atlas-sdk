@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "description": "Atlas World Protocol — Core types, IDL and PDA helpers",
   "main": "dist/index.js",
-  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": ["dist", "README.md"],
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "dev": "tsc --project tsconfig.json --watch",
@@ -17,5 +16,16 @@
   },
   "devDependencies": {
     "typescript": "^5.7.3"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usainbluntmx/atlas-sdk.git",
+    "directory": "core"
+  },
+  "homepage": "https://github.com/usainbluntmx/atlas-sdk#readme",
+  "keywords": ["solana", "anchor", "blockchain", "web3"],
+  "license": "MIT"
 }

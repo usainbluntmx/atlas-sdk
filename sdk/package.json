@@ -18,6 +18,15 @@
   "devDependencies": {
     "typescript": "^5.7.3"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usainbluntmx/atlas-sdk.git",
+    "directory": "sdk"
+  },
+  "homepage": "https://github.com/usainbluntmx/atlas-sdk#readme",
   "keywords": [
     "solana", "anchor", "gamefi", "web3", "gaming",
     "persistent-world", "blockchain", "sdk"
