@@ -1,0 +1,19 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a0e14;
+  color: #e8e8e0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+
+.wallet-adapter-button {
+  background: #00c2a822 !important;
+  border: 1px solid #00c2a8 !important;
+  color: #00c2a8 !important;
+  border-radius: 6px !important;
+}

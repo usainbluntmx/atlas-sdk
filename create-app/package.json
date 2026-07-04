@@ -1,0 +1,23 @@
+{
+  "name": "@atlas-world/create-app",
+  "version": "1.0.2",
+  "description": "Crea una app Next.js conectada a un mundo persistente de Atlas World Protocol en un comando.",
+  "bin": {
+    "create-atlas-app": "./bin/index.js"
+  },
+  "files": ["bin", "template", "README.md"],
+  "dependencies": {
+    "inquirer": "^8.2.6",
+    "chalk": "^4.1.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usainbluntmx/atlas-sdk.git",
+    "directory": "create-app"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": ["solana", "gamefi", "web3", "create-app", "atlas"],
+  "license": "MIT"
+}

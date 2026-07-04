@@ -1,3 +1,4 @@
+"use client"
 /**
  * @atlas-world/react — AtlasPlayerCard
  *

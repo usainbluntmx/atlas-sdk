@@ -1,8 +1,13 @@
+"use client"
 /**
  * @atlas-world/react — useWorld
  *
- * Hook para leer el estado de un mundo en tiempo real.
- * Se actualiza automáticamente vía Anchor Events — sin polling.
+ * Hook para leer el estado de un mundo. Se actualiza vía Anchor Events
+ * en tiempo real, con un polling de respaldo cada 8 segundos — esto
+ * garantiza consistencia eventual incluso si el WebSocket del RPC
+ * público falla o se corta silenciosamente (algo común en endpoints
+ * gratuitos de Devnet). Para producción, usa un RPC dedicado
+ * (Helius, QuickNode, etc.) para que los eventos en vivo sean confiables.
  *
  * @example
  * const { world, loading, error } = useWorld(worldId)
@@ -19,9 +24,11 @@
  * )
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { World, ResourceCollectedEvent, WorldResetEvent } from '@atlas-world/core'
 import { useAtlasContext } from './AtlasProvider'
+
+const POLL_INTERVAL_MS = 8000
 
 interface UseWorldResult {
   world: World | null
@@ -35,9 +42,11 @@ export function useWorld(worldId: number | null): UseWorldResult {
   const [world, setWorld] = useState<World | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fetchingRef = useRef(false)
 
   const fetchWorld = useCallback(async () => {
-    if (!client || worldId === null) return
+    if (!client || worldId === null || fetchingRef.current) return
+    fetchingRef.current = true
     setLoading(true)
     setError(null)
     try {
@@ -47,6 +56,7 @@ export function useWorld(worldId: number | null): UseWorldResult {
       setError('Error al cargar el mundo')
     } finally {
       setLoading(false)
+      fetchingRef.current = false
     }
   }, [client, worldId])
 
@@ -55,11 +65,17 @@ export function useWorld(worldId: number | null): UseWorldResult {
     fetchWorld()
   }, [fetchWorld])
 
-  // Suscripción a eventos en tiempo real
+  // Polling de respaldo — garantiza consistencia eventual
+  useEffect(() => {
+    if (!client || worldId === null) return
+    const interval = setInterval(fetchWorld, POLL_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [client, worldId, fetchWorld])
+
+  // Suscripción a eventos en tiempo real (mejor esfuerzo)
   useEffect(() => {
     if (!client || worldId === null) return
 
-    // Actualizar progreso cuando alguien recolecta
     const unsubCollect = client.resource.subscribe(
       worldId,
       (event: ResourceCollectedEvent) => {
@@ -77,7 +93,6 @@ export function useWorld(worldId: number | null): UseWorldResult {
       }
     )
 
-    // Re-fetch completo cuando el epoch se resetea
     const unsubReset = client.world.subscribe(worldId, {
       onWorldReset: (_event: WorldResetEvent) => {
         fetchWorld()
