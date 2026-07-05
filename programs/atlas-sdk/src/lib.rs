@@ -58,6 +58,35 @@ pub mod atlas {
         Ok(())
     }
 
+    /// Transfiere la autoridad del protocolo a una nueva wallet (ej. un multi-sig).
+    /// Solo puede llamarla el protocol_authority actual.
+    pub fn transfer_protocol_authority(
+        ctx: Context<ProtocolAdmin>,
+        new_authority: Pubkey,
+    ) -> Result<()> {
+        ctx.accounts.global_config.protocol_authority = new_authority;
+        Ok(())
+    }
+
+    /// Transfiere la autoridad de un mundo específico a una nueva wallet.
+    /// Solo puede llamarla el authority actual del mundo.
+    pub fn transfer_world_authority(
+        ctx: Context<TransferWorldAuthority>,
+        new_authority: Pubkey,
+    ) -> Result<()> {
+        ctx.accounts.world_config.authority = new_authority;
+        Ok(())
+    }
+
+    /// Cierra un WorldConfig y devuelve el rent al authority.
+    /// Solo puede llamarla el authority del mundo.
+    /// NOTA: no cierra WorldState ni Leaderboard de epochs pasados —
+    /// esos quedan como historial. Solo libera la cuenta de
+    /// configuración una vez que el mundo ya no se va a usar.
+    pub fn close_world(_ctx: Context<CloseWorld>) -> Result<()> {
+        Ok(())
+    }
+
     /// ⚠️ SOLO PARA DESARROLLO — cierra GlobalConfig y devuelve el rent.
     ///
     /// Uso: cuando el layout de GlobalConfig cambia (se agregan/quitan campos)
@@ -74,6 +103,7 @@ pub mod atlas {
     /// apropiada (versionado de accounts, o congelar el layout antes
     /// del primer deploy productivo).
     pub fn close_protocol(ctx: Context<CloseProtocol>) -> Result<()> {
+        require!(cfg!(feature = "devnet-tools"), AtlasError::Unauthorized);
         let global_config_info = ctx.accounts.global_config.to_account_info();
         let authority_info = ctx.accounts.authority.to_account_info();
 
@@ -104,6 +134,7 @@ pub mod atlas {
         ctx: Context<ProtocolAdmin>,
         new_count: u64,
     ) -> Result<()> {
+        require!(cfg!(feature = "devnet-tools"), AtlasError::Unauthorized);
         ctx.accounts.global_config.world_count = new_count;
         Ok(())
     }
@@ -600,6 +631,32 @@ pub struct CreateLeaderboard<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct TransferWorldAuthority<'info> {
+    #[account(
+        mut,
+        seeds = [b"world_config", world_config.world_id.to_le_bytes().as_ref()],
+        bump = world_config.bump,
+        constraint = world_config.authority == authority.key() @ AtlasError::Unauthorized
+    )]
+    pub world_config: Account<'info, WorldConfig>,
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CloseWorld<'info> {
+    #[account(
+        mut,
+        close = authority,
+        seeds = [b"world_config", world_config.world_id.to_le_bytes().as_ref()],
+        bump = world_config.bump,
+        constraint = world_config.authority == authority.key() @ AtlasError::Unauthorized
+    )]
+    pub world_config: Account<'info, WorldConfig>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
 }
 
 #[derive(Accounts)]

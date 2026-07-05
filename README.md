@@ -5,6 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@atlas-world/sdk)](https://www.npmjs.com/package/@atlas-world/sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+**[atlas-world.dev →](https://usainbluntmx.github.io/atlas-sdk/)** — sitio interactivo con arquitectura, casos de uso y demo en vivo
+
 ## ¿Qué es Atlas?
 
 Atlas World Protocol es una primitiva de estado compartido persistente en Solana.
@@ -20,11 +22,28 @@ con reglas verificables on-chain.
 
 ---
 
+## Empieza en 2 minutos
+
+La forma más rápida de ver el protocolo funcionando — sin escribir código:
+
+```bash
+npx @atlas-world/create-app mi-mundo
+cd mi-mundo
+npm install
+npm run dev
+```
+
+Esto genera una app Next.js ya conectada al **Mundo Demo público** que mantiene el equipo de Atlas. Abre `localhost:3000`, conecta tu wallet de Phantom en Devnet, y en segundos vas a ver progreso real, un leaderboard compartido con otros developers probando el SDK ahora mismo, y botones de recolecta que funcionan de inmediato. Todo se actualiza en vivo, sin recargar la página.
+
+Cuando quieras tu propio mundo en vez del demo: `npx @atlas-world/cli create-world`.
+
+---
+
 ## ⚠️ Limitaciones conocidas (léelas antes de diseñar tu mundo)
 
 - **Leaderboard top 25** — el leaderboard on-chain guarda únicamente las 25 mejores puntuaciones por epoch. No hay paginación ni ranking ilimitado. Para GameFi pequeño/mediano es suficiente; para producción con miles de jugadores activos simultáneos, necesitarás un indexer externo que escuche los eventos `ResourceCollected` y mantenga su propio ranking completo.
 - **Los epochs no avanzan solos** — cuando un mundo se agota (o expira por tiempo), el protocolo emite el evento `WorldReset`, pero **alguien tiene que llamar `advanceEpoch()` y `createLeaderboard()` manualmente** para que el mundo vuelva a aceptar recolectas. Ver la sección "Ciclo de vida de un Epoch" más abajo — este es el punto que más confunde a developers nuevos.
-- **Los mundos no se pueden cerrar todavía** — no existe una instrucción `close_world`. Una vez creado, el mundo (y su rent asociado) permanece indefinidamente. Está en el roadmap.
+- **Los eventos en tiempo real dependen del RPC** — `@atlas-world/react` combina Anchor Events con polling de respaldo cada 8s, así que la UI siempre acaba consistente incluso si el WebSocket del RPC público de Devnet falla (es común en endpoints gratuitos). Para producción con más tráfico, usa un RPC dedicado (Helius, QuickNode).
 
 ---
 
@@ -44,6 +63,11 @@ npm install @atlas-world/react
 Para usar el CLI sin instalar nada:
 ```bash
 npx @atlas-world/cli init
+```
+
+Para generar una app completa conectada al Mundo Demo:
+```bash
+npx @atlas-world/create-app mi-mundo
 ```
 
 ---
@@ -295,14 +319,17 @@ epochDuration: '1d'
 | `@atlas-world/sdk` | Cliente principal — `AtlasClient` |
 | `@atlas-world/react` | Hooks + componentes UI listos para usar |
 | `@atlas-world/cli` | CLI interactivo para crear y administrar mundos |
+| `@atlas-world/create-app` | Genera una app Next.js conectada al Mundo Demo en un comando |
 
 ---
 
 ## Seguridad — qué saber antes de usar en mainnet
 
-- El contrato incluye instrucciones `close_protocol` y `admin_set_world_count` marcadas explícitamente como solo para desarrollo — se usan para migrar `GlobalConfig` cuando su layout cambia durante desarrollo activo en devnet. **No deben existir en un deploy de mainnet.**
-- El protocolo tiene emergency stop (`pauseProtocol()` / `unpauseProtocol()`) controlado por una sola wallet (`protocol_authority`). Antes de mainnet, esa autoridad debe migrarse a una wallet multi-sig.
-- El contrato **no ha sido auditado externamente** todavía. Úsalo en devnet con confianza; trátalo como beta en mainnet.
+- **Las instrucciones de solo-desarrollo están bloqueadas por default.** `close_protocol` y `admin_set_world_count` existen para migrar `GlobalConfig` durante desarrollo activo en devnet, pero fallan siempre con `Unauthorized` a menos que el contrato se compile explícitamente con `anchor build -- --features devnet-tools`. Es estructuralmente imposible que lleguen activas a un deploy de mainnet por descuido.
+- **Migración de autoridad sin redeploy.** `transferProtocolAuthority()` y `transferWorldAuthority()` permiten mover el control del protocolo (o de un mundo específico) a una wallet multi-sig (recomendado: [Squads](https://squads.so)) sin necesidad de volver a desplegar el contrato.
+- **Los mundos se pueden cerrar.** `closeWorld()` cierra la cuenta `WorldConfig` y devuelve el rent al authority cuando un mundo ya no se usa. El `WorldState` y `Leaderboard` de epochs pasados no se cierran — quedan como historial.
+- **Emergency stop.** `pauseProtocol()` / `unpauseProtocol()` bloquean `createWorld`, `mintPlayer` y `collectResource` en todo el protocolo sin afectar lecturas. Controlado por `protocol_authority` — migra esa autoridad a un multi-sig antes de mainnet.
+- **El contrato no ha sido auditado externamente todavía.** Úsalo en devnet con confianza; trátalo como beta en mainnet hasta que haya un reporte de auditoría público.
 
 ---
 

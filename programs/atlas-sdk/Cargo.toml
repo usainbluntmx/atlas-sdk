@@ -18,6 +18,10 @@ idl-build = ["anchor-lang/idl-build"]
 anchor-debug = []
 custom-heap = []
 custom-panic = []
+# Habilita close_protocol y admin_set_world_count — SOLO para devnet.
+# Compilar con: anchor build -- --features devnet-tools
+# NUNCA activar este feature en un build destinado a mainnet.
+devnet-tools = []
 
 [dependencies]
 anchor-lang = { version = "0.32.1", features = ["event-cpi"] }

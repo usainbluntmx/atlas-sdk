@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas World Protocol — Mundos persistentes en Solana</title>
+<meta name="description" content="Construye mundos persistentes on-chain en Solana en minutos. GameFi, DAO, Marketplace, DeFi — un protocolo, todas las narrativas.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-deep: #060810;
+    --surface: #111722;
+    --surface-2: #151c29;
+    --border: #232c3d;
+    --border-soft: #1a2230;
+    --text: #e8e8e0;
+    --text-muted: #7c8798;
+    --text-faint: #4a5568;
+    --teal: #00c2a8;
+    --teal-dim: #00c2a822;
+    --gold: #f59e0b;
+    --gold-dim: #f59e0b22;
+    --violet: #818cf8;
+    --violet-dim: #818cf822;
+
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  ::selection { background: var(--teal-dim); color: var(--teal); }
+
+  a { color: var(--teal); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  :focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 3px;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* ─── Background texture ─────────────────────────────────────────── */
+  .starfield {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(1px 1px at 12% 22%, #e8e8e033 0%, transparent 100%),
+      radial-gradient(1px 1px at 32% 68%, #e8e8e022 0%, transparent 100%),
+      radial-gradient(1px 1px at 52% 12%, #e8e8e044 0%, transparent 100%),
+      radial-gradient(1px 1px at 74% 82%, #e8e8e022 0%, transparent 100%),
+      radial-gradient(1px 1px at 88% 42%, #e8e8e033 0%, transparent 100%),
+      radial-gradient(1px 1px at 22% 90%, #e8e8e022 0%, transparent 100%),
+      radial-gradient(1px 1px at 68% 28%, #e8e8e033 0%, transparent 100%);
+  }
+
+  .grid-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(#ffffff05 1px, transparent 1px),
+      linear-gradient(90deg, #ffffff05 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, black 0%, transparent 70%);
+  }
+
+  main { position: relative; z-index: 1; }
+
+  /* ─── Nav ─────────────────────────────────────────────────────────── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: #0a0e14cc;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .nav-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+  .nav-mark {
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--teal);
+    transform: rotate(45deg);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .nav-mark::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    background: var(--teal);
+  }
+  .nav-links {
+    display: flex;
+    gap: 28px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+  .nav-links a { color: var(--text-muted); }
+  .nav-links a:hover { color: var(--teal); text-decoration: none; }
+  @media (max-width: 640px) { .nav-links { display: none; } }
+
+  /* ─── Hero ────────────────────────────────────────────────────────── */
+  .hero {
+    padding: 96px 0 80px;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 48px;
+    align-items: center;
+  }
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; padding: 56px 0 48px; }
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--teal);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--teal);
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(40px, 6.2vw, 68px);
+    line-height: 1.04;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    margin-bottom: 22px;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--teal);
+  }
+
+  .hero-lede {
+    font-size: 17px;
+    color: var(--text-muted);
+    max-width: 480px;
+    margin-bottom: 32px;
+  }
+  .hero-lede strong { color: var(--text); font-weight: 500; }
+
+  .cmd-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 13px 16px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    margin-bottom: 18px;
+    max-width: 100%;
+  }
+  .cmd-bar .prompt { color: var(--text-faint); user-select: none; }
+  .cmd-bar code { color: var(--text); overflow-x: auto; white-space: nowrap; }
+  .cmd-bar code .hi { color: var(--teal); }
+  .copy-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+  }
+  .copy-btn:hover { border-color: var(--teal); color: var(--teal); }
+  .copy-btn.copied { border-color: var(--teal); color: var(--teal); }
+
+  .hero-links {
+    display: flex;
+    gap: 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+  .hero-links a { color: var(--text-muted); }
+  .hero-links a:hover { color: var(--teal); }
+
+  /* ─── Epoch Ring (signature element) ─────────────────────────────── */
+  .ring-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .ring-svg { width: 100%; max-width: 340px; height: auto; }
+  .ring-hist {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+  .ring-track {
+    fill: none;
+    stroke: var(--border-soft);
+    stroke-width: 10;
+  }
+  .ring-progress {
+    fill: none;
+    stroke: var(--teal);
+    stroke-width: 10;
+    stroke-linecap: round;
+    transform-origin: 50% 50%;
+    transform: rotate(-90deg);
+    filter: drop-shadow(0 0 6px #00c2a866);
+    animation: ring-fill 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes ring-fill {
+    from { stroke-dashoffset: 653; }
+  }
+  .ring-center {
+    position: absolute;
+    text-align: center;
+    font-family: var(--font-mono);
+  }
+  .ring-epoch {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .ring-pct {
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .ring-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ─── Sections ────────────────────────────────────────────────────── */
+  section { padding: 88px 0; }
+  .section-border-top { border-top: 1px solid var(--border-soft); }
+
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  h2 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 3.6vw, 38px);
+    font-weight: 500;
+    color: var(--text);
+    max-width: 640px;
+    margin-bottom: 18px;
+    line-height: 1.15;
+  }
+  .section-lede {
+    color: var(--text-muted);
+    font-size: 15px;
+    max-width: 560px;
+    margin-bottom: 48px;
+  }
+
+  /* ─── Thesis section ──────────────────────────────────────────────── */
+  .thesis-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border-soft);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  @media (max-width: 760px) { .thesis-grid { grid-template-columns: repeat(2, 1fr); } }
+  .thesis-cell {
+    background: var(--surface);
+    padding: 26px 20px;
+  }
+  .thesis-cell .glyph {
+    font-family: var(--font-display);
+    font-size: 26px;
+    color: var(--teal);
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+  .thesis-cell h3 {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .thesis-cell p {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+
+  /* ─── Architecture flow ───────────────────────────────────────────── */
+  .flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .flow-node {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 18px;
+    min-width: 168px;
+    flex-shrink: 0;
+  }
+  .flow-node .fn-idx {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .flow-node h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .flow-node p {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+
+  /* ─── Code panel ──────────────────────────────────────────────────── */
+  .code-panel {
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .code-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .code-tab {
+    padding: 12px 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: var(--text-faint);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    border-top: none; border-left: none; border-right: none;
+    transition: color 0.15s ease;
+  }
+  .code-tab.active {
+    color: var(--teal);
+    border-bottom-color: var(--teal);
+  }
+  .code-body {
+    padding: 24px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--text);
+  }
+  .code-body .c-kw { color: var(--violet); }
+  .code-body .c-str { color: var(--gold); }
+  .code-body .c-fn { color: var(--teal); }
+  .code-body .c-com { color: var(--text-faint); }
+  .code-pane { display: none; }
+  .code-pane.active { display: block; }
+
+  /* ─── Verticals ───────────────────────────────────────────────────── */
+  .verticals {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 760px) { .verticals { grid-template-columns: 1fr; } }
+  .v-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+    transition: border-color 0.2s ease;
+  }
+  .v-card:hover { border-color: var(--border); }
+  .v-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .v-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .v-card h3 { font-size: 15px; font-weight: 600; color: var(--text); }
+  .v-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .v-tag {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    padding: 4px 9px;
+    border-radius: 5px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+  }
+  .v-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ─── Packages table ──────────────────────────────────────────────── */
+  .pkg-table { width: 100%; border-collapse: collapse; }
+  .pkg-table tr { border-bottom: 1px solid var(--border-soft); }
+  .pkg-table tr:last-child { border-bottom: none; }
+  .pkg-table td { padding: 16px 4px; vertical-align: top; }
+  .pkg-name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--teal);
+    white-space: nowrap;
+    padding-right: 24px !important;
+  }
+  .pkg-desc { font-size: 13.5px; color: var(--text-muted); }
+  .pkg-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── Security ─────────────────────────────────────────────────────── */
+  .sec-list { display: flex; flex-direction: column; gap: 14px; }
+  .sec-item {
+    display: flex;
+    gap: 14px;
+    padding: 16px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    align-items: flex-start;
+  }
+  .sec-status {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+    width: 90px;
+    padding-top: 1px;
+  }
+  .sec-status.done { color: var(--teal); }
+  .sec-status.pending { color: var(--gold); }
+  .sec-text { font-size: 13.5px; color: var(--text-muted); line-height: 1.5; }
+  .sec-text strong { color: var(--text); font-weight: 500; }
+
+  /* ─── Footer CTA ──────────────────────────────────────────────────── */
+  .final-cta {
+    text-align: center;
+    padding: 96px 0 80px;
+  }
+  .final-cta h2 { margin: 0 auto 28px; }
+  .final-cta .cmd-bar { margin: 0 auto 28px; justify-self: center; }
+  .cta-links {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 12px 22px;
+    border-radius: 7px;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+  }
+  .btn-primary {
+    background: var(--teal);
+    color: #04140f;
+    border: 1px solid var(--teal);
+  }
+  .btn-primary:hover { background: #00d9bd; text-decoration: none; }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); text-decoration: none; }
+
+  footer {
+    border-top: 1px solid var(--border-soft);
+    padding: 32px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer a { color: var(--text-faint); }
+  footer a:hover { color: var(--teal); }
+
+  /* ─── Reveal on scroll ────────────────────────────────────────────── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ring-progress { animation: none; stroke-dashoffset: var(--final-offset, 0); }
+    .reveal { opacity: 1; transform: none; transition: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="starfield"></div>
+<div class="grid-overlay"></div>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <div class="nav-mark"></div>
+      ATLAS
+    </div>
+    <div class="nav-links">
+      <a href="#thesis">Protocolo</a>
+      <a href="#architecture">Arquitectura</a>
+      <a href="#verticals">Casos de uso</a>
+      <a href="#quickstart">Código</a>
+      <a href="#security">Seguridad</a>
+      <a href="https://github.com/usainbluntmx/atlas-sdk" target="_blank">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Solana · Devnet · Anchor 0.32.1</div>
+        <h1>Cada mundo<br><em>recuerda</em> lo que pasó.</h1>
+        <p class="hero-lede">
+          Atlas es una primitiva de estado compartido persistente en Solana.
+          <strong>Un World es cualquier espacio donde múltiples actores interactúan
+          con reglas verificables on-chain</strong> — un juego, una DAO, un marketplace,
+          un protocolo DeFi. Instálalo, crea un mundo, y en minutos tienes estado
+          compartido que nadie puede alterar retroactivamente.
+        </p>
+        <div class="cmd-bar">
+          <span class="prompt">$</span>
+          <code>npx <span class="hi">@atlas-world/create-app</span> mi-mundo</code>
+          <button class="copy-btn" data-copy="npx @atlas-world/create-app mi-mundo">copiar</button>
+        </div>
+        <div class="hero-links">
+          <a href="https://www.npmjs.com/package/@atlas-world/sdk" target="_blank">npm ↗</a>
+          <a href="https://github.com/usainbluntmx/atlas-sdk" target="_blank">GitHub ↗</a>
+          <a href="#quickstart">Ver el código →</a>
+        </div>
+      </div>
+
+      <div class="ring-stage">
+        <svg class="ring-svg" viewBox="0 0 240 240">
+          <circle class="ring-hist" cx="120" cy="120" r="112" opacity="0.5"/>
+          <circle class="ring-hist" cx="120" cy="120" r="122" opacity="0.3"/>
+          <circle class="ring-track" cx="120" cy="120" r="104"/>
+          <circle class="ring-progress" cx="120" cy="120" r="104"
+            stroke-dasharray="653"
+            style="stroke-dashoffset: 196;"/>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-epoch">Epoch 12 · Mundo Demo</div>
+          <div class="ring-pct">70%</div>
+          <div class="ring-label">recursos recolectados</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap section-border-top" id="thesis">
+    <section>
+      <div class="kicker">La primitiva</div>
+      <h2>No es un motor de juego. Es la memoria del mundo.</h2>
+      <p class="section-lede">
+        Cada World tiene estado, actores y reglas — verificables on-chain,
+        sin servidor central. El historial de cada epoch queda congelado
+        para siempre; el presente sigue evolucionando.
+      </p>
+
+      <div class="thesis-grid reveal">
+        <div class="thesis-cell">
+          <div class="glyph">Es.</div>
+          <h3>Estado</h3>
+          <p>Lo que existe en el mundo y puede cambiar — recursos, propuestas, listings, posiciones.</p>
+        </div>
+        <div class="thesis-cell">
+          <div class="glyph">Ac.</div>
+          <h3>Actores</h3>
+          <p>Players con identidad on-chain vía PDA, historial y puntuación verificable por epoch.</p>
+        </div>
+        <div class="thesis-cell">
+          <div class="glyph">Re.</div>
+          <h3>Reglas</h3>
+          <p>Resource types, cooldowns y límites configurados por el developer, aplicados por el contrato.</p>
+        </div>
+        <div class="thesis-cell">
+          <div class="glyph">Ep.</div>
+          <h3>Epochs</h3>
+          <p>Ciclos de tiempo donde el mundo se agota, se resetea, y el leaderboard anterior persiste.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap section-border-top" id="architecture">
+    <section>
+      <div class="kicker">Cómo funciona</div>
+      <h2>Cuatro instrucciones, un ciclo completo.</h2>
+      <p class="section-lede">
+        Todo mundo pasa por el mismo flujo, sin importar si es un juego o una DAO.
+      </p>
+
+      <div class="flow reveal">
+        <div class="flow-node">
+          <div class="fn-idx">01</div>
+          <h4>createWorld()</h4>
+          <p>Define tus resource types, visibilidad y duración de epoch. El contrato asigna un world_id único.</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="fn-idx">02</div>
+          <h4>mint.player()</h4>
+          <p>Cada wallet crea su Player vía PDA — identidad y progreso verificables on-chain.</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="fn-idx">03</div>
+          <h4>resource.collect()</h4>
+          <p>Cooldown y rate limiting verificados on-chain. El leaderboard se reordena sin sort completo.</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="fn-idx">04</div>
+          <h4>WorldReset</h4>
+          <p>Al agotarse o expirar, el epoch avanza. El leaderboard anterior queda congelado como historial.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap section-border-top" id="quickstart">
+    <section>
+      <div class="kicker">Tres líneas</div>
+      <h2>La misma API, cualquier narrativa.</h2>
+      <p class="section-lede">
+        Lo único que cambia entre un juego y una DAO es qué significan tus recursos.
+      </p>
+
+      <div class="code-panel reveal">
+        <div class="code-tabs">
+          <button class="code-tab active" data-tab="gaming">GameFi</button>
+          <button class="code-tab" data-tab="dao">DAO</button>
+          <button class="code-tab" data-tab="market">Marketplace</button>
+        </div>
+        <div class="code-body">
+<div class="code-pane active" data-pane="gaming"><span class="c-kw">const</span> { worldId } = <span class="c-kw">await</span> atlas.world.<span class="c-fn">create</span>({
+  name: <span class="c-str">'Mi Juego'</span>,
+  worldType: WorldType.Gaming,
+  visibility: WorldVisibility.Public,
+  totalResources: <span class="c-str">500</span>,
+  epochDuration: <span class="c-str">'7d'</span>,
+  resourceTypes: [
+    { id: <span class="c-str">0</span>, name: <span class="c-str">'wood'</span>,  points: <span class="c-str">1</span>, cooldownSeconds: <span class="c-str">5</span>  },
+    { id: <span class="c-str">1</span>, name: <span class="c-str">'stone'</span>, points: <span class="c-str">3</span>, cooldownSeconds: <span class="c-str">10</span> },
+    { id: <span class="c-str">2</span>, name: <span class="c-str">'gold'</span>,  points: <span class="c-str">5</span>, cooldownSeconds: <span class="c-str">30</span> },
+  ]
+})
+<span class="c-com">// atlas.player.mint({ worldId, name: 'Hero' })
+// atlas.resource.collect({ worldId, resourceTypeId: 0 })</span></div>
+<div class="code-pane" data-pane="dao"><span class="c-kw">const</span> { worldId } = <span class="c-kw">await</span> atlas.world.<span class="c-fn">create</span>({
+  name: <span class="c-str">'Mi DAO'</span>,
+  worldType: WorldType.Dao,
+  visibility: WorldVisibility.Public,
+  totalResources: <span class="c-str">100</span>,
+  epochDuration: <span class="c-str">'30d'</span>,
+  resourceTypes: [
+    { id: <span class="c-str">0</span>, name: <span class="c-str">'vote'</span>,     points: <span class="c-str">1</span>,  cooldownSeconds: <span class="c-str">86400</span>  },
+    { id: <span class="c-str">1</span>, name: <span class="c-str">'proposal'</span>, points: <span class="c-str">10</span>, cooldownSeconds: <span class="c-str">604800</span> },
+  ]
+})
+<span class="c-com">// Cada 'recolecta' de tipo 'vote' es un voto verificable on-chain.</span></div>
+<div class="code-pane" data-pane="market"><span class="c-kw">const</span> { worldId } = <span class="c-kw">await</span> atlas.world.<span class="c-fn">create</span>({
+  name: <span class="c-str">'Mi Marketplace'</span>,
+  worldType: WorldType.Marketplace,
+  visibility: WorldVisibility.Public,
+  totalResources: <span class="c-str">1000</span>,
+  epochDuration: <span class="c-str">'1d'</span>,
+  resourceTypes: [
+    { id: <span class="c-str">0</span>, name: <span class="c-str">'listing'</span>,  points: <span class="c-str">1</span>, cooldownSeconds: <span class="c-str">3600</span>  },
+    { id: <span class="c-str">1</span>, name: <span class="c-str">'featured'</span>, points: <span class="c-str">5</span>, cooldownSeconds: <span class="c-str">86400</span> },
+  ]
+})
+<span class="c-com">// El leaderboard diario se convierte en tu ranking de sellers destacados.</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap section-border-top" id="verticals">
+    <section>
+      <div class="kicker">Una primitiva, cuatro narrativas</div>
+      <h2>GameFi es el punto de entrada. No el límite.</h2>
+      <p class="section-lede">
+        El contrato no diferencia comportamiento por tipo de mundo — eso lo decide tu configuración.
+      </p>
+
+      <div class="verticals reveal">
+        <div class="v-card">
+          <div class="v-head"><span class="v-dot" style="background:var(--teal)"></span><h3>GameFi &amp; Web3 Gaming</h3></div>
+          <p class="v-desc">Recursos, niveles y leaderboards compartidos entre jugadores. El caso de uso de referencia — v1.0 del SDK.</p>
+          <div class="v-tags"><span class="v-tag">wood · stone · gold</span><span class="v-tag">cooldown 5–30s</span></div>
+        </div>
+        <div class="v-card">
+          <div class="v-head"><span class="v-dot" style="background:var(--violet)"></span><h3>DAO &amp; Governance</h3></div>
+          <p class="v-desc">Votos y propuestas como recursos con cooldown. Epochs largos que se alinean con ciclos de votación.</p>
+          <div class="v-tags"><span class="v-tag">vote · proposal</span><span class="v-tag">epoch 30d</span></div>
+        </div>
+        <div class="v-card">
+          <div class="v-head"><span class="v-dot" style="background:var(--gold)"></span><h3>NFT Marketplace</h3></div>
+          <p class="v-desc">Listings y features destacados con ranking diario verificable, sin base de datos central.</p>
+          <div class="v-tags"><span class="v-tag">listing · featured</span><span class="v-tag">epoch 1d</span></div>
+        </div>
+        <div class="v-card">
+          <div class="v-head"><span class="v-dot" style="background:#f472b6"></span><h3>DeFi &amp; Liquidity Mining</h3></div>
+          <p class="v-desc">Depósitos y staking modelados como recolectas, con rate limiting anti-sybil nativo del protocolo.</p>
+          <div class="v-tags"><span class="v-tag">roadmap v2.0</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap section-border-top">
+    <section>
+      <div class="kicker">Paquetes</div>
+      <h2>Un SDK, cinco piezas, cero fricción.</h2>
+
+      <table class="pkg-table reveal">
+        <tr>
+          <td class="pkg-name">@atlas-world/core</td>
+          <td class="pkg-desc">Tipos, PDAs, errores y utilidades base — sin dependencias pesadas.</td>
+        </tr>
+        <tr>
+          <td class="pkg-name">@atlas-world/sdk</td>
+          <td class="pkg-desc"><code>AtlasClient</code> con cuatro sub-clientes: world, player, resource, leaderboard.</td>
+        </tr>
+        <tr>
+          <td class="pkg-name">@atlas-world/react</td>
+          <td class="pkg-desc">Hooks + 4 componentes visuales listos para usar. Ningún otro SDK de Solana los tiene.</td>
+        </tr>
+        <tr>
+          <td class="pkg-name">@atlas-world/cli</td>
+          <td class="pkg-desc">CLI interactivo — crea un mundo respondiendo preguntas, sin escribir código.</td>
+        </tr>
+        <tr>
+          <td class="pkg-name">@atlas-world/create-app</td>
+          <td class="pkg-desc">Genera una app conectada al Mundo Demo público en un comando.</td>
+        </tr>
+      </table>
+    </section>
+  </div>
+
+  <div class="wrap section-border-top" id="security">
+    <section>
+      <div class="kicker">Honestidad técnica</div>
+      <h2>Qué está listo y qué sigue pendiente.</h2>
+      <p class="section-lede">
+        Preferimos que lo sepas ahora que que lo descubras en producción.
+      </p>
+
+      <div class="sec-list reveal">
+        <div class="sec-item">
+          <span class="sec-status done">RESUELTO</span>
+          <span class="sec-text"><strong>Emergency stop.</strong> pauseProtocol() bloquea escrituras en todo el protocolo sin afectar lecturas.</span>
+        </div>
+        <div class="sec-item">
+          <span class="sec-status done">RESUELTO</span>
+          <span class="sec-text"><strong>Instrucciones de desarrollo bloqueadas por default.</strong> close_protocol y admin_set_world_count requieren un feature flag de compilación explícito — estructuralmente imposible enviarlas a mainnet por descuido.</span>
+        </div>
+        <div class="sec-item">
+          <span class="sec-status done">RESUELTO</span>
+          <span class="sec-text"><strong>Migración de autoridad sin redeploy.</strong> transferProtocolAuthority() y transferWorldAuthority() habilitan mover el control a un multi-sig (Squads) en cualquier momento.</span>
+        </div>
+        <div class="sec-item">
+          <span class="sec-status done">RESUELTO</span>
+          <span class="sec-text"><strong>Cierre de mundos.</strong> closeWorld() devuelve el rent cuando un mundo ya no se usa.</span>
+        </div>
+        <div class="sec-item">
+          <span class="sec-status pending">PENDIENTE</span>
+          <span class="sec-text"><strong>Auditoría externa.</strong> El contrato no ha sido auditado todavía. Trátalo como beta en mainnet hasta que exista un reporte público.</span>
+        </div>
+        <div class="sec-item">
+          <span class="sec-status pending">PENDIENTE</span>
+          <span class="sec-text"><strong>Multi-sig real.</strong> La instrucción existe; falta configurar el Squads Vault y ejecutar la migración.</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap section-border-top">
+    <section class="final-cta">
+      <div class="kicker" style="justify-content:center; display:flex;">Empieza ahora</div>
+      <h2>Tu primer mundo persistente<br>toma menos de lo que dura este scroll.</h2>
+      <div class="cmd-bar">
+        <span class="prompt">$</span>
+        <code>npx <span class="hi">@atlas-world/create-app</span> mi-mundo</code>
+        <button class="copy-btn" data-copy="npx @atlas-world/create-app mi-mundo">copiar</button>
+      </div>
+      <div class="cta-links">
+        <a class="btn btn-primary" href="https://github.com/usainbluntmx/atlas-sdk" target="_blank">Ver en GitHub</a>
+        <a class="btn btn-ghost" href="https://www.npmjs.com/package/@atlas-world/sdk" target="_blank">Ver en npm</a>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <footer>
+      <span>Atlas World Protocol · MIT License</span>
+      <span>Program ID (Devnet): 6byM2kmNLLGcrjRcq7ETVvGpxKgoEQuAof44SXe1vEee</span>
+      <span><a href="https://github.com/usainbluntmx" target="_blank">@usainbluntmx</a></span>
+    </footer>
+  </div>
+</main>
+
+<script>
+  // Copy to clipboard
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = btn.getAttribute('data-copy');
+      navigator.clipboard.writeText(text).then(() => {
+        const original = btn.textContent;
+        btn.textContent = 'copiado ✓';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove('copied');
+        }, 1800);
+      });
+    });
+  });
+
+  // Code tabs
+  document.querySelectorAll('.code-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-tab');
+      document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.code-pane').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelector('.code-pane[data-pane="' + target + '"]').classList.add('active');
+    });
+  });
+
+  // Scroll reveal
+  const revealEls = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    revealEls.forEach(el => io.observe(el));
+  } else {
+    revealEls.forEach(el => el.classList.add('in'));
+  }
+</script>
+
+</body>
+</html>
