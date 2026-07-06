@@ -13,11 +13,19 @@ const collect_1 = require("./commands/collect");
 const status_1 = require("./commands/status");
 const leaderboard_1 = require("./commands/leaderboard");
 const admin_1 = require("./commands/admin");
+const watch_1 = require("./commands/watch");
+// Manejador global — sin esto, un error de config/wallet faltante se
+// escapa como stack trace crudo de Anchor en vez de un mensaje claro.
+process.on("unhandledRejection", (err) => {
+    const msg = err?.message ?? String(err);
+    console.error(chalk_1.default.red(`\n❌ ${msg}\n`));
+    process.exit(1);
+});
 const program = new commander_1.Command();
 program
     .name("atlas-cli")
     .description(chalk_1.default.cyan("Atlas World Protocol") + " — crea y administra mundos persistentes en Solana")
-    .version("1.0.0");
+    .version("1.1.0");
 program
     .command("init")
     .description("Configura tu wallet y red por primera vez")
@@ -55,6 +63,11 @@ program
     .option("-w, --world <id>", "worldId (usa el default si se omite)")
     .action(admin_1.advanceEpochCommand);
 program
+    .command("watch")
+    .description("[authority] Keeper de desarrollo — avanza epochs automáticamente cuando el mundo se agota")
+    .option("-w, --world <id>", "worldId (usa el default si se omite)")
+    .action(watch_1.watchCommand);
+program
     .command("pause")
     .description("[protocol authority] Emergency stop — pausa todo el protocolo")
     .action(admin_1.pauseCommand);
@@ -62,5 +75,8 @@ program
     .command("unpause")
     .description("[protocol authority] Reactiva el protocolo")
     .action(admin_1.unpauseCommand);
-program.parse();
+program.parseAsync().catch((err) => {
+    console.error(chalk_1.default.red(`\n❌ ${err.message ?? err}\n`));
+    process.exit(1);
+});
 //# sourceMappingURL=index.js.map

@@ -36,13 +36,20 @@ export async function statusCommand(options: StatusOptions) {
   console.log(`  Cooldown:     ${world.config.globalCooldown}s`)
 
   if (world.pendingAdvance) {
-    console.log(chalk.yellow(`\n  ⚠️  El epoch avanzó pero falta correr advance-epoch\n`))
+    console.log(chalk.yellow(`\n  ⚠️  El mundo se agotó y sigue esperando avanzar de epoch.`))
+    console.log(chalk.yellow(`     Corre: atlas-cli advance-epoch\n`))
   } else {
     console.log(
       `\n  Progreso: ${chalk.cyan(bar(world.progress))} ${world.progress}%  (${world.state.resourcesCollected}/${world.config.totalResources})`
     )
     if (world.exhausted) {
-      console.log(chalk.yellow(`  ⚡ Mundo agotado — esperando reset`))
+      console.log(chalk.yellow(`  ⚡ Mundo agotado — corre: atlas-cli advance-epoch`))
+    } else if (world.progress >= 90) {
+      console.log(
+        chalk.yellow(
+          `  ⚠️  Este mundo está por agotarse (${world.progress}%). Cuando llegue a 100%, corre:\n     atlas-cli advance-epoch  (o deja "atlas-cli watch" corriendo para que sea automático)`
+        )
+      )
     }
   }
 

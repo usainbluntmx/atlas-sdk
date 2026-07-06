@@ -29,14 +29,32 @@ export async function collectCommand(options: CollectOptions) {
     spinner.succeed(
       chalk.green(`+${result.points} pts (${result.resourceType.name}) — Nivel ${result.newLevel}`)
     )
-    console.log(chalk.gray(`\nProgreso del mundo: ${result.worldProgress}`))
+    console.log(chalk.gray(`Progreso del mundo: ${result.worldProgress}`))
+    console.log(chalk.gray(`Signature: ${result.signature}`))
+
     if (result.epochEnded) {
-      console.log(chalk.yellow("\n⚡ ¡El mundo se agotó! El epoch avanzará."))
-      console.log(chalk.gray("El authority debe correr advance-epoch y create-leaderboard."))
+      console.log(
+        chalk.bold.yellow(
+          "\n⚡ ¡El mundo acaba de agotarse! Ya no acepta más recolectas hasta que avances el epoch."
+        )
+      )
+      console.log(chalk.yellow("   Corre esto para reactivarlo:\n"))
+      console.log(chalk.bold("     atlas-cli advance-epoch\n"))
+      console.log(
+        chalk.gray(
+          "   Tip: deja `atlas-cli watch` corriendo en otra terminal y esto pasa automáticamente.\n"
+        )
+      )
     }
-    console.log(chalk.gray(`\nSignature: ${result.signature}\n`))
   } catch (err: any) {
-    spinner.fail(chalk.red("Error al recolectar"))
-    console.error(chalk.red(err.message ?? err))
+    const code = err.error?.errorCode?.code
+    if (code === "EpochMismatch") {
+      spinner.fail(chalk.red("El mundo está agotado y esperando avanzar de epoch"))
+      console.log(chalk.yellow("\n   Corre esto para reactivarlo:\n"))
+      console.log(chalk.bold("     atlas-cli advance-epoch\n"))
+    } else {
+      spinner.fail(chalk.red("Error al recolectar"))
+      console.error(chalk.red(err.message ?? err))
+    }
   }
 }

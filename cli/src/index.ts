@@ -9,6 +9,15 @@ import { collectCommand } from "./commands/collect"
 import { statusCommand } from "./commands/status"
 import { leaderboardCommand } from "./commands/leaderboard"
 import { advanceEpochCommand, pauseCommand, unpauseCommand } from "./commands/admin"
+import { watchCommand } from "./commands/watch"
+
+// Manejador global — sin esto, un error de config/wallet faltante se
+// escapa como stack trace crudo de Anchor en vez de un mensaje claro.
+process.on("unhandledRejection", (err: any) => {
+  const msg = err?.message ?? String(err)
+  console.error(chalk.red(`\n❌ ${msg}\n`))
+  process.exit(1)
+})
 
 const program = new Command()
 
@@ -17,7 +26,7 @@ program
   .description(
     chalk.cyan("Atlas World Protocol") + " — crea y administra mundos persistentes en Solana"
   )
-  .version("1.0.0")
+  .version("1.1.0")
 
 program
   .command("init")
@@ -63,6 +72,12 @@ program
   .action(advanceEpochCommand)
 
 program
+  .command("watch")
+  .description("[authority] Keeper de desarrollo — avanza epochs automáticamente cuando el mundo se agota")
+  .option("-w, --world <id>", "worldId (usa el default si se omite)")
+  .action(watchCommand)
+
+program
   .command("pause")
   .description("[protocol authority] Emergency stop — pausa todo el protocolo")
   .action(pauseCommand)
@@ -72,4 +87,7 @@ program
   .description("[protocol authority] Reactiva el protocolo")
   .action(unpauseCommand)
 
-program.parse()
+program.parseAsync().catch((err) => {
+  console.error(chalk.red(`\n❌ ${err.message ?? err}\n`))
+  process.exit(1)
+})

@@ -49,6 +49,8 @@ Cuando quieras tu propio mundo en vez del demo: `npx @atlas-world/cli create-wor
 
 ## Instalación
 
+**Requiere Node.js 18 o superior.** Verifica con `node --version`.
+
 ```bash
 npm install @atlas-world/sdk
 # o
@@ -69,6 +71,8 @@ Para generar una app completa conectada al Mundo Demo:
 ```bash
 npx @atlas-world/create-app mi-mundo
 ```
+
+> **Nota sobre imports:** todo lo que necesitas — `AtlasClient`, `WorldType`, `WorldVisibility`, tipos como `Player` o `World` — se re-exporta desde `@atlas-world/sdk`. **Nunca necesitas importar directamente de `@atlas-world/core`** — ese paquete es una dependencia interna, no una API pública que debas tocar.
 
 ---
 
@@ -273,8 +277,11 @@ npx @atlas-world/cli collect -t 0
 npx @atlas-world/cli status
 npx @atlas-world/cli leaderboard
 npx @atlas-world/cli advance-epoch   # [authority]
+npx @atlas-world/cli watch           # [authority] keeper de desarrollo — avanza epochs solo
 npx @atlas-world/cli pause           # [protocol authority] emergency stop
 ```
+
+> **`watch` es para desarrollo, no producción.** Corre en foreground y avanza el epoch automáticamente cada vez que el mundo se agota — útil mientras pruebas para no tener que llamar `advance-epoch` manualmente cada vez. En producción, implementa esta misma lógica como tu propio backend/keeper usando `atlas.world.subscribe()`.
 
 Ver `cli/README.md` para la referencia completa de comandos.
 

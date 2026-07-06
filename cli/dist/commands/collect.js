@@ -22,16 +22,26 @@ async function collectCommand(options) {
         const atlas = (0, client_1.getAtlasClient)();
         const result = await atlas.resource.collect({ worldId, resourceTypeId });
         spinner.succeed(chalk_1.default.green(`+${result.points} pts (${result.resourceType.name}) — Nivel ${result.newLevel}`));
-        console.log(chalk_1.default.gray(`\nProgreso del mundo: ${result.worldProgress}`));
+        console.log(chalk_1.default.gray(`Progreso del mundo: ${result.worldProgress}`));
+        console.log(chalk_1.default.gray(`Signature: ${result.signature}`));
         if (result.epochEnded) {
-            console.log(chalk_1.default.yellow("\n⚡ ¡El mundo se agotó! El epoch avanzará."));
-            console.log(chalk_1.default.gray("El authority debe correr advance-epoch y create-leaderboard."));
+            console.log(chalk_1.default.bold.yellow("\n⚡ ¡El mundo acaba de agotarse! Ya no acepta más recolectas hasta que avances el epoch."));
+            console.log(chalk_1.default.yellow("   Corre esto para reactivarlo:\n"));
+            console.log(chalk_1.default.bold("     atlas-cli advance-epoch\n"));
+            console.log(chalk_1.default.gray("   Tip: deja `atlas-cli watch` corriendo en otra terminal y esto pasa automáticamente.\n"));
         }
-        console.log(chalk_1.default.gray(`\nSignature: ${result.signature}\n`));
     }
     catch (err) {
-        spinner.fail(chalk_1.default.red("Error al recolectar"));
-        console.error(chalk_1.default.red(err.message ?? err));
+        const code = err.error?.errorCode?.code;
+        if (code === "EpochMismatch") {
+            spinner.fail(chalk_1.default.red("El mundo está agotado y esperando avanzar de epoch"));
+            console.log(chalk_1.default.yellow("\n   Corre esto para reactivarlo:\n"));
+            console.log(chalk_1.default.bold("     atlas-cli advance-epoch\n"));
+        }
+        else {
+            spinner.fail(chalk_1.default.red("Error al recolectar"));
+            console.error(chalk_1.default.red(err.message ?? err));
+        }
     }
 }
 //# sourceMappingURL=collect.js.map
