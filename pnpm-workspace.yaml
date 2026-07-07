@@ -3,6 +3,8 @@ packages:
   - 'sdk'
   - 'react'
   - 'cli'
+  - 'create-app'
+  - 'mcp'
 allowBuilds:
   bufferutil: true
   utf-8-validate: true

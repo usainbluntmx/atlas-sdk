@@ -1,0 +1,36 @@
+{
+  "name": "@atlas-world/mcp",
+  "version": "1.0.0",
+  "description": "Atlas World Protocol — Servidor MCP para que agentes AI creen y administren mundos persistentes en Solana",
+  "bin": {
+    "atlas-mcp": "./dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc --project tsconfig.json && chmod +x dist/index.js",
+    "dev": "tsc --project tsconfig.json --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@atlas-world/core": "workspace:*",
+    "@atlas-world/sdk": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.5.0",
+    "@solana/web3.js": "^1.98.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.7.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usainbluntmx/atlas-sdk.git",
+    "directory": "mcp"
+  },
+  "keywords": ["solana", "mcp", "ai-agents", "model-context-protocol", "gamefi", "web3"],
+  "license": "MIT"
+}

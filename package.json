@@ -8,7 +8,7 @@
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "test": "ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\"",
-    "build:sdk": "pnpm -r --filter=./core --filter=./sdk --filter=./react --filter=./cli build",
+    "build:sdk": "pnpm -r --filter=./core --filter=./sdk --filter=./react --filter=./cli --filter=./mcp build",
     "clean:sdk": "pnpm -r --filter=./core --filter=./sdk --filter=./react clean"
   },
   "dependencies": {
