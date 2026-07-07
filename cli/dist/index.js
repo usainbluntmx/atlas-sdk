@@ -14,6 +14,8 @@ const status_1 = require("./commands/status");
 const leaderboard_1 = require("./commands/leaderboard");
 const admin_1 = require("./commands/admin");
 const watch_1 = require("./commands/watch");
+const closeWorld_1 = require("./commands/closeWorld");
+const quickstart_1 = require("./commands/quickstart");
 // Manejador global — sin esto, un error de config/wallet faltante se
 // escapa como stack trace crudo de Anchor en vez de un mensaje claro.
 process.on("unhandledRejection", (err) => {
@@ -25,15 +27,24 @@ const program = new commander_1.Command();
 program
     .name("atlas-cli")
     .description(chalk_1.default.cyan("Atlas World Protocol") + " — crea y administra mundos persistentes en Solana")
-    .version("1.1.0");
+    .version("1.2.0");
 program
     .command("init")
     .description("Configura tu wallet y red por primera vez")
     .action(init_1.initCommand);
 program
+    .command("quickstart")
+    .description("Demo en un comando: crea mundo + mintea player + keeper corriendo")
+    .action(quickstart_1.quickstartCommand);
+program
     .command("create-world")
     .description("Crea un nuevo mundo (interactivo, con templates de GameFi/DAO/Marketplace)")
     .action(createWorld_1.createWorldCommand);
+program
+    .command("close-world")
+    .description("[authority] Cierra un mundo y devuelve el rent")
+    .option("-w, --world <id>", "worldId (usa el default si se omite)")
+    .action(closeWorld_1.closeWorldCommand);
 program
     .command("mint-player")
     .description("Mintea tu player en un mundo")

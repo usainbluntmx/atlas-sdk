@@ -368,4 +368,43 @@ export class WorldClient {
     if ('private' in raw) return WorldVisibility.Private
     throw new Error(`WorldVisibility desconocido: ${JSON.stringify(raw)}`)
   }
+  
+  /**
+   * Cierra un mundo y devuelve el rent al authority.
+   * Solo puede llamarla el authority del mundo.
+   *
+   * NOTA: no cierra WorldState ni Leaderboard de epochs pasados —
+   * esos quedan como historial permanente. Solo libera la cuenta
+   * de configuración una vez que el mundo ya no se va a usar.
+   *
+   * @example
+   * const { signature, lamportsRecovered } = await atlas.world.closeWorld(worldId)
+   */
+  async closeWorld(worldId: number): Promise<{ signature: string; lamportsRecovered: number }> {
+    const { program, programId, connection } = this.client
+    const authority = (program.provider as any).wallet.publicKey
+
+    const [worldConfigPDA] = getWorldConfigPDA(worldId, programId)
+
+    const balanceBefore = await connection.getBalance(authority)
+
+    try {
+      const signature = await (program.methods as any)
+        .closeWorld()
+        .accounts({
+          worldConfig: worldConfigPDA,
+          authority,
+        })
+        .rpc()
+
+      const balanceAfter = await connection.getBalance(authority)
+
+      return {
+        signature,
+        lamportsRecovered: Math.max(0, balanceAfter - balanceBefore),
+      }
+    } catch (err) {
+      throw parseError(err)
+    }
+  }
 }

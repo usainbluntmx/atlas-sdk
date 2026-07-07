@@ -10,6 +10,8 @@ import { statusCommand } from "./commands/status"
 import { leaderboardCommand } from "./commands/leaderboard"
 import { advanceEpochCommand, pauseCommand, unpauseCommand } from "./commands/admin"
 import { watchCommand } from "./commands/watch"
+import { closeWorldCommand } from "./commands/closeWorld"
+import { quickstartCommand } from "./commands/quickstart"
 
 // Manejador global — sin esto, un error de config/wallet faltante se
 // escapa como stack trace crudo de Anchor en vez de un mensaje claro.
@@ -26,7 +28,7 @@ program
   .description(
     chalk.cyan("Atlas World Protocol") + " — crea y administra mundos persistentes en Solana"
   )
-  .version("1.1.0")
+  .version("1.2.0")
 
 program
   .command("init")
@@ -34,9 +36,20 @@ program
   .action(initCommand)
 
 program
+  .command("quickstart")
+  .description("Demo en un comando: crea mundo + mintea player + keeper corriendo")
+  .action(quickstartCommand)
+
+program
   .command("create-world")
   .description("Crea un nuevo mundo (interactivo, con templates de GameFi/DAO/Marketplace)")
   .action(createWorldCommand)
+
+program
+  .command("close-world")
+  .description("[authority] Cierra un mundo y devuelve el rent")
+  .option("-w, --world <id>", "worldId (usa el default si se omite)")
+  .action(closeWorldCommand)
 
 program
   .command("mint-player")

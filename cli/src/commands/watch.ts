@@ -6,7 +6,7 @@ interface WatchOptions {
   world?: string
 }
 
-const POLL_INTERVAL_MS = 4000
+const POLL_INTERVAL_MS = 2000
 
 /**
  * Keeper de desarrollo. Revisa el mundo cada 4 segundos (polling) y,

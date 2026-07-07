@@ -1,6 +1,6 @@
 {
   "name": "@atlas-world/sdk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Atlas World Protocol — SDK for building persistent worlds on Solana",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

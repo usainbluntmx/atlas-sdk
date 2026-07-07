@@ -46,11 +46,11 @@ importers:
   cli:
     dependencies:
       '@atlas-world/core':
-        specifier: ^1.0.0
-        version: 1.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
+        specifier: workspace:*
+        version: link:../core
       '@atlas-world/sdk':
-        specifier: ^1.0.0
-        version: 1.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
+        specifier: workspace:*
+        version: link:../sdk
       '@coral-xyz/anchor':
         specifier: ^0.32.1
         version: 0.32.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
@@ -97,10 +97,10 @@ importers:
     dependencies:
       '@atlas-world/core':
         specifier: ^1.0.0
-        version: 1.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
+        version: 1.0.0(typescript@5.9.3)
       '@atlas-world/sdk':
         specifier: ^1.0.0
-        version: 1.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
+        version: 1.0.0(typescript@5.9.3)
       react:
         specifier: '>=18.0.0'
         version: 19.2.7
@@ -1018,7 +1018,7 @@ packages:
 
 snapshots:
 
-  '@atlas-world/core@1.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)':
+  '@atlas-world/core@1.0.0(typescript@5.9.3)':
     dependencies:
       '@coral-xyz/anchor': 0.32.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
       '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
@@ -1028,9 +1028,9 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@atlas-world/sdk@1.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)':
+  '@atlas-world/sdk@1.0.0(typescript@5.9.3)':
     dependencies:
-      '@atlas-world/core': 1.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
+      '@atlas-world/core': 1.0.0(typescript@5.9.3)
       '@coral-xyz/anchor': 0.32.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
       '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
     transitivePeerDependencies:

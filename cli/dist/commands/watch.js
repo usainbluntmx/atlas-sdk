@@ -7,7 +7,7 @@ exports.watchCommand = watchCommand;
 const chalk_1 = __importDefault(require("chalk"));
 const client_1 = require("../client");
 const config_1 = require("../config");
-const POLL_INTERVAL_MS = 4000;
+const POLL_INTERVAL_MS = 2000;
 /**
  * Keeper de desarrollo. Revisa el mundo cada 4 segundos (polling) y,
  * cuando detecta que se agotó, avanza el epoch y crea el leaderboard
