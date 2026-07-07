@@ -634,6 +634,9 @@
           <a href="https://github.com/usainbluntmx/atlas-sdk" target="_blank">GitHub ↗</a>
           <a href="#quickstart">Ver el código →</a>
         </div>
+        <p style="font-size:12.5px; color: var(--text-faint); margin-top:14px; font-family: var(--font-mono);">
+          ¿Solo backend? <code style="color:var(--text-muted)">npx @atlas-world/cli quickstart</code> crea un mundo, mintea tu player, y deja un keeper corriendo — todo en un comando.
+        </p>
       </div>
 
       <div class="ring-stage">
@@ -720,6 +723,12 @@
           <div class="fn-idx">04</div>
           <h4>WorldReset</h4>
           <p>Al agotarse o expirar, el epoch avanza. El leaderboard anterior queda congelado como historial.</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="fn-idx">05</div>
+          <h4>closeWorld()</h4>
+          <p>Cuando el mundo ya no se usa, ciérralo y recupera el rent. El ciclo de vida completo, sin cuentas huérfanas.</p>
         </div>
       </div>
     </section>
@@ -878,6 +887,45 @@
         <div class="sec-item">
           <span class="sec-status pending">PENDIENTE</span>
           <span class="sec-text"><strong>Multi-sig real.</strong> La instrucción existe; falta configurar el Squads Vault y ejecutar la migración.</span>
+        </div>
+      </div>
+
+      <p style="margin-top:28px; font-size:13.5px; color: var(--text-muted);">
+        ¿Listo para llevar tu mundo de prototipo a producción real? Lee la
+        <a href="https://github.com/usainbluntmx/atlas-sdk/blob/main/PRODUCTION-GUIDE.md" target="_blank">guía de dev a producción →</a>
+        — RPC dedicado, keeper real, indexer, y multi-sig, paso a paso.
+      </p>
+    </section>
+  </div>
+
+  <div class="wrap section-border-top">
+    <section>
+      <div class="kicker">Ciclo de vida completo</div>
+      <h2>Crea, prueba y cierra — sin cuentas huérfanas.</h2>
+      <p class="section-lede">
+        La mayoría de los proyectos on-chain se olvidan del "cerrar". Atlas no.
+      </p>
+
+      <div class="thesis-grid reveal">
+        <div class="thesis-cell">
+          <div class="glyph">01</div>
+          <h3>Estimado antes de firmar</h3>
+          <p>create-world calcula el rent real en bytes antes de pedirte confirmar — nunca firmas a ciegas.</p>
+        </div>
+        <div class="thesis-cell">
+          <div class="glyph">02</div>
+          <h3>Keeper de desarrollo</h3>
+          <p><code>atlas-cli watch</code> avanza epochs automáticamente mientras pruebas — no pienses en infraestructura todavía.</p>
+        </div>
+        <div class="thesis-cell">
+          <div class="glyph">03</div>
+          <h3>Errores que explican</h3>
+          <p>Nada de códigos crípticos — "el mundo está agotado, corre advance-epoch" en vez de EpochMismatch (6006).</p>
+        </div>
+        <div class="thesis-cell">
+          <div class="glyph">04</div>
+          <h3>Cierre con reembolso</h3>
+          <p><code>atlas-cli close-world</code> devuelve el rent cuando terminaste de probar. Nada queda pagando renta para siempre.</p>
         </div>
       </div>
     </section>

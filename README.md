@@ -330,6 +330,12 @@ epochDuration: '1d'
 
 ---
 
+## De desarrollo a producción
+
+¿Ya probaste Atlas y quieres llevar tu mundo a mainnet con infraestructura real? Lee **[PRODUCTION-GUIDE.md](./PRODUCTION-GUIDE.md)** — cubre RPC dedicado, reemplazar `atlas-cli watch` por un keeper real, indexer para leaderboards sin límite, migración a multi-sig, y un checklist final pre-mainnet.
+
+---
+
 ## Seguridad — qué saber antes de usar en mainnet
 
 - **Las instrucciones de solo-desarrollo están bloqueadas por default.** `close_protocol` y `admin_set_world_count` existen para migrar `GlobalConfig` durante desarrollo activo en devnet, pero fallan siempre con `Unauthorized` a menos que el contrato se compile explícitamente con `anchor build -- --features devnet-tools`. Es estructuralmente imposible que lleguen activas a un deploy de mainnet por descuido.
