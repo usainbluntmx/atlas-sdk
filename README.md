@@ -22,6 +22,21 @@ con reglas verificables on-chain.
 
 ---
 
+## ¿Qué parte de Atlas necesitas?
+
+Atlas no es una sola cosa — es un contrato Solana + SDK TypeScript + 4 interfaces distintas encima. Elige la tuya:
+
+| Quiero... | Usa esto |
+|---|---|
+| 👑 **Ver algo funcionando ya, con UI** | `npx @atlas-world/create-app` — genera una app Next.js con demo viva |
+| 🛠️ **Control total desde terminal** (sin escribir código) | `npx @atlas-world/cli` — crear mundos, mintear, recolectar, todo interactivo |
+| 💻 **Integrar el protocolo en mi propio backend/frontend** | `npm install @atlas-world/sdk` — el cliente TypeScript, ver [Quickstart](#quickstart) abajo |
+| 🤖 **Que un agente AI opere mundos por su cuenta** | `npm install -g @atlas-world/mcp` — servidor MCP, ver [sección de agentes](#para-agentes-ai) |
+
+Todas comparten el mismo contrato y el mismo estado on-chain — son solo puertas de entrada distintas al mismo protocolo.
+
+---
+
 ## Empieza en 2 minutos
 
 La forma más rápida de ver el protocolo funcionando — sin escribir código:
@@ -102,6 +117,8 @@ npx @atlas-world/create-app mi-mundo
 
 ## Quickstart
 
+> ¿Prefieres ver el ciclo completo en un solo archivo, comentado línea por línea? Corre [`examples/quickstart.ts`](./examples/quickstart.ts) — crea un mundo, mintea, recolecta, agota el mundo, avanza el epoch, y verifica el historial, todo en una sola corrida.
+
 ### 1. Inicializar el cliente
 
 El `wallet` que le pasas a `AtlasClient` cambia según dónde corras tu código:
@@ -119,7 +136,20 @@ const atlas = new AtlasClient({
 })
 ```
 
-**En Node.js / scripts / backend** (sin wallet-adapter, usando un keypair de archivo):
+**En Node.js / scripts / backend** — la forma más rápida:
+```typescript
+import { AtlasClient } from '@atlas-world/sdk'
+
+const atlas = AtlasClient.fromKeypair({
+  network: 'devnet',
+  keypairPath: '~/.config/solana/id.json',
+})
+```
+
+`fromKeypair()` es el atajo recomendado para todo lo que no sea un frontend
+con wallet de navegador. Si necesitas armar el objeto `wallet` a mano (por
+ejemplo, para un keypair que no viene de un archivo), la forma explícita
+es:
 ```typescript
 import { AtlasClient } from '@atlas-world/sdk'
 import { Keypair } from '@solana/web3.js'
@@ -128,8 +158,7 @@ import * as fs from 'fs'
 const secretKey = JSON.parse(fs.readFileSync('~/.config/solana/id.json', 'utf-8'))
 const keypair = Keypair.fromSecretKey(new Uint8Array(secretKey))
 
-// Envuelve el keypair en una interfaz compatible — el SDK solo necesita
-// publicKey, signTransaction y signAllTransactions
+// El SDK solo necesita publicKey, signTransaction y signAllTransactions
 const wallet = {
   publicKey: keypair.publicKey,
   signTransaction: async (tx: any) => { tx.partialSign(keypair); return tx },
@@ -139,7 +168,8 @@ const wallet = {
 const atlas = new AtlasClient({ network: 'devnet', wallet })
 ```
 
-Esto es exactamente lo que hace `@atlas-world/cli` internamente — si quieres ver un ejemplo completo funcionando, revisa `cli/src/config.ts` en el repo.
+Esto es lo que hace `fromKeypair()` internamente, y también lo que usa
+`@atlas-world/cli` — revisa `cli/src/config.ts` en el repo si quieres verlo.
 
 ### 2. Crear un mundo
 
@@ -355,6 +385,26 @@ await atlas.world.create({
 | `@atlas-world/cli` | CLI interactivo para crear y administrar mundos |
 | `@atlas-world/create-app` | Genera una app Next.js conectada al Mundo Demo en un comando |
 | `@atlas-world/mcp` | Servidor MCP — tools nativas para agentes AI (Claude y otros) |
+
+---
+
+## Tests
+
+El contrato tiene tests de integración corriendo contra un validator local
+de Anchor — no es solo código sin verificar:
+
+```bash
+anchor test
+```
+
+Cubren: inicialización del protocolo, creación de mundos (públicos y
+privados), whitelist, mint de players, recolecta con validación de
+resource types inválidos, y el leaderboard. Ver `tests/*.test.ts` en el repo.
+
+Además, todo el ciclo completo (crear → mint → recolectar → agotar →
+avanzar epoch → verificar historial) está probado manualmente contra
+devnet real en [`examples/quickstart.ts`](./examples/quickstart.ts) — el
+mismo script que puedes correr tú para verificarlo de nuevo en cualquier momento.
 
 ---
 

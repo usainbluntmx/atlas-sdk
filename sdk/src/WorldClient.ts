@@ -53,6 +53,40 @@ export class WorldClient {
     signature: string
     worldConfigPDA: PublicKey
   }> {
+    // ─── Validación en TypeScript antes de tocar la red ────────────────────
+    // Esto evita mandar una transacción destinada a fallar con un error
+    // críptico de Anchor (ej. InvalidTotalResources) — el error aparece
+    // aquí, claro y en español, antes de gastar un solo lamport.
+    if (!params.name || params.name.length === 0) {
+      throw new Error('world.create() requiere un "name" no vacío')
+    }
+    if (params.name.length > 64) {
+      throw new Error(`El nombre del mundo no puede superar 64 caracteres (tiene ${params.name.length})`)
+    }
+    if (!params.totalResources || params.totalResources <= 0) {
+      throw new Error(
+        'world.create() requiere "totalResources" mayor a 0. Ejemplo: totalResources: 500'
+      )
+    }
+    if (!params.resourceTypes || params.resourceTypes.length === 0) {
+      throw new Error(
+        'world.create() requiere al menos un tipo de recurso en "resourceTypes". Ejemplo:\n' +
+        '  resourceTypes: [{ id: 0, name: "common", points: 1, cooldownSeconds: 5 }]\n' +
+        'Tip: usa un template en lugar de definirlo a mano — ver WORLD_TEMPLATES.'
+      )
+    }
+    if (params.resourceTypes.length > 8) {
+      throw new Error(`Máximo 8 tipos de recurso por mundo (definiste ${params.resourceTypes.length})`)
+    }
+    for (const rt of params.resourceTypes) {
+      if (!rt.name || rt.name.length > 32) {
+        throw new Error(`El nombre del resourceType "${rt.name}" debe tener entre 1 y 32 caracteres`)
+      }
+      if (rt.points <= 0) {
+        throw new Error(`El resourceType "${rt.name}" debe tener points > 0`)
+      }
+    }
+
     const { program, programId, connection } = this.client
 
     const [globalConfigPDA] = getGlobalConfigPDA(programId)

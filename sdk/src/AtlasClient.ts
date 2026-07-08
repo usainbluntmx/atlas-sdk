@@ -10,8 +10,10 @@
  * await atlas.resource.collect({ worldId: 0, resourceTypeId: 0 })
  */
 
-import { Connection, PublicKey, SystemProgram } from '@solana/web3.js'
+import { Connection, PublicKey, SystemProgram, Keypair } from '@solana/web3.js'
 import { Program, AnchorProvider, setProvider } from '@coral-xyz/anchor'
+import * as fs from 'fs'
+import * as os from 'os'
 import {
   AtlasNetwork,
   ATLAS_PROGRAM_ID_DEVNET,
@@ -77,6 +79,48 @@ export class AtlasClient {
     this.player = new PlayerClient(this)
     this.resource = new ResourceClient(this)
     this.leaderboard = new LeaderboardClient(this)
+  }
+
+  /**
+   * Crea un AtlasClient a partir de un archivo de keypair local — la forma
+   * más rápida de usar el SDK desde Node.js, scripts, o un backend, sin
+   * pasar por wallet-adapter (que es solo para navegador).
+   *
+   * @example
+   * const atlas = AtlasClient.fromKeypair({
+   *   network: 'devnet',
+   *   keypairPath: '~/.config/solana/id.json',
+   * })
+   */
+  static fromKeypair(config: {
+    network: AtlasNetwork
+    keypairPath: string
+    programId?: string
+  }): AtlasClient {
+    const resolved = config.keypairPath.replace(/^~/, os.homedir())
+    if (!fs.existsSync(resolved)) {
+      throw new Error(`No se encontró el keypair en: ${resolved}`)
+    }
+    const secretKey = JSON.parse(fs.readFileSync(resolved, 'utf-8'))
+    const keypair = Keypair.fromSecretKey(new Uint8Array(secretKey))
+
+    const wallet = {
+      publicKey: keypair.publicKey,
+      signTransaction: async (tx: any) => {
+        tx.partialSign(keypair)
+        return tx
+      },
+      signAllTransactions: async (txs: any[]) => {
+        txs.forEach((tx) => tx.partialSign(keypair))
+        return txs
+      },
+    }
+
+    return new AtlasClient({
+      network: config.network,
+      wallet,
+      programId: config.programId,
+    })
   }
 
   // ─── Administración del protocolo ────────────────────────────────────────
