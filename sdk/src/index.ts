@@ -39,6 +39,8 @@ export { ResourceClient } from './ResourceClient'
 export type { CollectParams } from './ResourceClient'
 export { LeaderboardClient } from './LeaderboardClient'
 export type { LeaderboardGetParams } from './LeaderboardClient'
+export { WORLD_TEMPLATES } from '@atlas-world/core'
+export type { WorldTemplate, WorldTemplateName } from '@atlas-world/core'
 
 // Re-exportar tipos del core para que los devs solo necesiten importar de @atlas-world/sdk
 export {

@@ -39,6 +39,30 @@ Cuando quieras tu propio mundo en vez del demo: `npx @atlas-world/cli create-wor
 
 ---
 
+## Para agentes AI
+
+Atlas también tiene una interfaz nativa para agentes AI vía **[Model Context Protocol](https://modelcontextprotocol.io)**. Un agente puede crear mundos, mintear su identidad, recolectar recursos, y leer el leaderboard directamente como tool calls — sin que un humano escriba código intermedio.
+
+```bash
+npm install -g @atlas-world/mcp
+```
+
+Configura en Claude Desktop (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "atlas-world": {
+      "command": "npx",
+      "args": ["-y", "@atlas-world/mcp"]
+    }
+  }
+}
+```
+
+Reutiliza la misma configuración que el CLI (`~/.atlas/config.json`) — si ya corriste `atlas-cli init`, el agente queda listo sin pasos extra. Ver [`mcp/README.md`](./mcp/README.md) para la referencia completa de tools.
+
+---
+
 ## ⚠️ Limitaciones conocidas (léelas antes de diseñar tu mundo)
 
 - **Leaderboard top 25** — el leaderboard on-chain guarda únicamente las 25 mejores puntuaciones por epoch. No hay paginación ni ranking ilimitado. Para GameFi pequeño/mediano es suficiente; para producción con miles de jugadores activos simultáneos, necesitarás un indexer externo que escuche los eventos `ResourceCollected` y mantenga su propio ranking completo.
@@ -289,32 +313,35 @@ Ver `cli/README.md` para la referencia completa de comandos.
 
 ## Casos de uso
 
-### GameFi
+Cada narrativa tiene un template listo en `WORLD_TEMPLATES` — resourceTypes, epochDuration y cooldowns ya calibrados, no genéricos. Úsalos directo o como punto de partida:
+
 ```typescript
-resourceTypes: [
-  { id: 0, name: 'wood',  points: 1, cooldownSeconds: 5  },
-  { id: 1, name: 'stone', points: 3, cooldownSeconds: 10 },
-  { id: 2, name: 'gold',  points: 5, cooldownSeconds: 30 },
-]
+import { WORLD_TEMPLATES } from '@atlas-world/sdk'
+
+const template = WORLD_TEMPLATES.dao // 'gaming' | 'dao' | 'marketplace' | 'defi' | 'rwa' | 'nft_collection'
+
+await atlas.world.create({
+  name: 'Mi DAO',
+  worldType: template.worldType,
+  visibility: WorldVisibility.Public,
+  totalResources: 100,
+  epochDuration: template.epochDuration,
+  globalCooldown: template.globalCooldown,
+  maxDailyCollects: template.maxDailyCollects,
+  resourceTypes: template.resourceTypes,
+})
 ```
 
-### DAO
-```typescript
-resourceTypes: [
-  { id: 0, name: 'vote',     points: 1,  cooldownSeconds: 86400  },
-  { id: 1, name: 'proposal', points: 10, cooldownSeconds: 604800 },
-]
-epochDuration: '30d'
-```
+| Template | Narrativa | Resources de ejemplo |
+|---|---|---|
+| `gaming` | GameFi / Web3 Gaming | common, rare, epic |
+| `dao` | DAO / Governance | vote, proposal, veto |
+| `marketplace` | Marketplace / Listings | listing, featured |
+| `defi` | DeFi / Liquidity Mining | lp_deposit, stake, long_term_lock |
+| `rwa` | Real World Assets | certification, custody_transfer, audit_confirmed |
+| `nft_collection` | NFT holder tracking | mint, trade, hold_milestone |
 
-### NFT Marketplace
-```typescript
-resourceTypes: [
-  { id: 0, name: 'listing',  points: 1, cooldownSeconds: 3600  },
-  { id: 1, name: 'featured', points: 5, cooldownSeconds: 86400 },
-]
-epochDuration: '1d'
-```
+`atlas-cli create-world` te deja elegir cualquiera de estos interactivamente, con el desglose completo de resourceTypes antes de confirmar.
 
 ---
 
@@ -327,6 +354,7 @@ epochDuration: '1d'
 | `@atlas-world/react` | Hooks + componentes UI listos para usar |
 | `@atlas-world/cli` | CLI interactivo para crear y administrar mundos |
 | `@atlas-world/create-app` | Genera una app Next.js conectada al Mundo Demo en un comando |
+| `@atlas-world/mcp` | Servidor MCP — tools nativas para agentes AI (Claude y otros) |
 
 ---
 

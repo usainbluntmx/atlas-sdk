@@ -254,6 +254,24 @@ server.tool("atlas_advance_epoch", "Avanza un mundo al siguiente epoch después 
         return errorResult(err);
     }
 });
+// ─── atlas_list_templates ────────────────────────────────────────────────────
+// Agrega este bloque en src/index.ts, junto a los demás server.tool(...),
+// antes de la sección "Arrancar el servidor".
+server.tool("atlas_list_templates", "Lista los templates de configuración disponibles para crear un mundo — " +
+    "GameFi, DAO, Marketplace, DeFi, RWA, NFT Collection. Cada uno trae " +
+    "resourceTypes, epochDuration y cooldowns ya calibrados para esa " +
+    "narrativa. Útil antes de llamar atlas_create_world si no sabes qué " +
+    "configuración usar.", {}, async () => {
+    const templates = Object.entries(core_1.WORLD_TEMPLATES).map(([key, t]) => ({
+        key,
+        description: t.description,
+        epochDuration: t.epochDuration,
+        globalCooldown: t.globalCooldown,
+        maxDailyCollects: t.maxDailyCollects,
+        resourceTypes: t.resourceTypes,
+    }));
+    return textResult(JSON.stringify(templates, null, 2));
+});
 // ─── Arrancar el servidor ────────────────────────────────────────────────────
 async function main() {
     const transport = new stdio_js_1.StdioServerTransport();

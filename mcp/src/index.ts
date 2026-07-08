@@ -21,8 +21,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod"
-import { WorldType, WorldVisibility, parseError } from "@atlas-world/core"
+import { WorldType, WorldVisibility, parseError, WORLD_TEMPLATES } from "@atlas-world/core"
 import { getAtlasClient, getDefaultWorldId } from "./client"
+
 
 const server = new McpServer({
   name: "atlas-world",
@@ -343,6 +344,31 @@ server.tool(
     } catch (err) {
       return errorResult(err)
     }
+  }
+)
+
+// ─── atlas_list_templates ────────────────────────────────────────────────────
+// Agrega este bloque en src/index.ts, junto a los demás server.tool(...),
+// antes de la sección "Arrancar el servidor".
+
+server.tool(
+  "atlas_list_templates",
+  "Lista los templates de configuración disponibles para crear un mundo — " +
+    "GameFi, DAO, Marketplace, DeFi, RWA, NFT Collection. Cada uno trae " +
+    "resourceTypes, epochDuration y cooldowns ya calibrados para esa " +
+    "narrativa. Útil antes de llamar atlas_create_world si no sabes qué " +
+    "configuración usar.",
+  {},
+  async () => {
+    const templates = Object.entries(WORLD_TEMPLATES).map(([key, t]) => ({
+      key,
+      description: t.description,
+      epochDuration: t.epochDuration,
+      globalCooldown: t.globalCooldown,
+      maxDailyCollects: t.maxDailyCollects,
+      resourceTypes: t.resourceTypes,
+    }))
+    return textResult(JSON.stringify(templates, null, 2))
   }
 )
 

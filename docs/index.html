@@ -604,6 +604,7 @@
       <a href="#thesis">Protocolo</a>
       <a href="#architecture">Arquitectura</a>
       <a href="#verticals">Casos de uso</a>
+      <a href="#agents">Agentes AI</a>
       <a href="#quickstart">Código</a>
       <a href="#security">Seguridad</a>
       <a href="https://github.com/usainbluntmx/atlas-sdk" target="_blank">GitHub</a>
@@ -794,32 +795,43 @@
 
   <div class="wrap section-border-top" id="verticals">
     <section>
-      <div class="kicker">Una primitiva, cuatro narrativas</div>
+      <div class="kicker">Una primitiva, seis templates</div>
       <h2>GameFi es el punto de entrada. No el límite.</h2>
       <p class="section-lede">
         El contrato no diferencia comportamiento por tipo de mundo — eso lo decide tu configuración.
+        Los seis templates de abajo ya están disponibles en <code style="font-family:var(--font-mono); font-size:12.5px;">WORLD_TEMPLATES</code>, listos para usar.
       </p>
 
       <div class="verticals reveal">
         <div class="v-card">
           <div class="v-head"><span class="v-dot" style="background:var(--teal)"></span><h3>GameFi &amp; Web3 Gaming</h3></div>
-          <p class="v-desc">Recursos, niveles y leaderboards compartidos entre jugadores. El caso de uso de referencia — v1.0 del SDK.</p>
-          <div class="v-tags"><span class="v-tag">wood · stone · gold</span><span class="v-tag">cooldown 5–30s</span></div>
+          <p class="v-desc">Recursos, niveles y leaderboards compartidos entre jugadores. El caso de uso de referencia.</p>
+          <div class="v-tags"><span class="v-tag">common · rare · epic</span><span class="v-tag">cooldown 5–30s</span></div>
         </div>
         <div class="v-card">
           <div class="v-head"><span class="v-dot" style="background:var(--violet)"></span><h3>DAO &amp; Governance</h3></div>
-          <p class="v-desc">Votos y propuestas como recursos con cooldown. Epochs largos que se alinean con ciclos de votación.</p>
-          <div class="v-tags"><span class="v-tag">vote · proposal</span><span class="v-tag">epoch 30d</span></div>
+          <p class="v-desc">Votos y propuestas como recursos con cooldown. Epochs largos alineados a ciclos de votación.</p>
+          <div class="v-tags"><span class="v-tag">vote · proposal · veto</span><span class="v-tag">epoch 30d</span></div>
         </div>
         <div class="v-card">
-          <div class="v-head"><span class="v-dot" style="background:var(--gold)"></span><h3>NFT Marketplace</h3></div>
+          <div class="v-head"><span class="v-dot" style="background:var(--gold)"></span><h3>Marketplace</h3></div>
           <p class="v-desc">Listings y features destacados con ranking diario verificable, sin base de datos central.</p>
           <div class="v-tags"><span class="v-tag">listing · featured</span><span class="v-tag">epoch 1d</span></div>
         </div>
         <div class="v-card">
           <div class="v-head"><span class="v-dot" style="background:#f472b6"></span><h3>DeFi &amp; Liquidity Mining</h3></div>
           <p class="v-desc">Depósitos y staking modelados como recolectas, con rate limiting anti-sybil nativo del protocolo.</p>
-          <div class="v-tags"><span class="v-tag">roadmap v2.0</span></div>
+          <div class="v-tags"><span class="v-tag">lp_deposit · stake</span><span class="v-tag">epoch 14d</span></div>
+        </div>
+        <div class="v-card">
+          <div class="v-head"><span class="v-dot" style="background:#34d399"></span><h3>RWA — Real World Assets</h3></div>
+          <p class="v-desc">Certificaciones, custodia y auditorías como eventos verificables on-chain, con cooldowns de meses.</p>
+          <div class="v-tags"><span class="v-tag">certification · audit</span><span class="v-tag">epoch 30d</span></div>
+        </div>
+        <div class="v-card">
+          <div class="v-head"><span class="v-dot" style="background:#fb923c"></span><h3>NFT Collection Tracking</h3></div>
+          <p class="v-desc">Mint, trade y holder milestones con ranking on-chain — actividad post-mint verificable.</p>
+          <div class="v-tags"><span class="v-tag">mint · trade · hold</span><span class="v-tag">epoch 7d</span></div>
         </div>
       </div>
     </section>
@@ -851,7 +863,55 @@
           <td class="pkg-name">@atlas-world/create-app</td>
           <td class="pkg-desc">Genera una app conectada al Mundo Demo público en un comando.</td>
         </tr>
+        <tr>
+          <td class="pkg-name">@atlas-world/mcp</td>
+          <td class="pkg-desc">Servidor MCP — expone el protocolo como tools nativas para agentes AI.</td>
+        </tr>
       </table>
+    </section>
+  </div>
+
+  <div class="wrap section-border-top" id="agents">
+    <section>
+      <div class="kicker">Diseñado para humanos. Y para agentes.</div>
+      <h2>Un mundo compartido no distingue quién lo recolecta.</h2>
+      <p class="section-lede">
+        Cooldowns on-chain, rate limiting anti-sybil, estado verificable sin
+        servidor central — lo que construimos pensando en developers humanos
+        resulta ser exactamente lo que necesita la coordinación entre
+        múltiples agentes AI. Vía <a href="https://modelcontextprotocol.io" target="_blank">Model Context Protocol</a>,
+        cualquier agente compatible (Claude, y otros) puede crear mundos,
+        mintear su identidad, y recolectar recursos con tool calls nativas
+        — sin que un humano escriba código intermedio.
+      </p>
+
+      <div class="code-panel reveal">
+        <div class="code-tabs">
+          <button class="code-tab active" data-tab="mcp-config">Configuración</button>
+          <button class="code-tab" data-tab="mcp-agent">Lo que ve el agente</button>
+        </div>
+        <div class="code-body">
+<div class="code-pane active" data-pane="mcp-config"><span class="c-com">// claude_desktop_config.json</span>
+{
+  <span class="c-str">"mcpServers"</span>: {
+    <span class="c-str">"atlas-world"</span>: {
+      <span class="c-str">"command"</span>: <span class="c-str">"npx"</span>,
+      <span class="c-str">"args"</span>: [<span class="c-str">"-y"</span>, <span class="c-str">"@atlas-world/mcp"</span>]
+    }
+  }
+}
+<span class="c-com">// Reutiliza ~/.atlas/config.json del CLI — si un humano ya
+// corrió `atlas-cli init`, el agente queda listo sin pasos extra.</span></div>
+<div class="code-pane" data-pane="mcp-agent"><span class="c-com">// El agente recibe estas tools automáticamente:</span>
+atlas_create_world      <span class="c-com">// crea un mundo con resource types custom</span>
+atlas_list_templates    <span class="c-com">// consulta templates: gaming, dao, defi, rwa...</span>
+atlas_mint_player       <span class="c-com">// identidad on-chain del agente</span>
+atlas_collect_resource  <span class="c-com">// recolecta con cooldown verificado on-chain</span>
+atlas_get_world_status  <span class="c-com">// progreso, epoch, si está agotado</span>
+atlas_get_leaderboard   <span class="c-com">// ranking del epoch actual o histórico</span>
+atlas_advance_epoch     <span class="c-com">// avanza el epoch tras un WorldReset</span></div>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -973,14 +1033,18 @@
     });
   });
 
-  // Code tabs
-  document.querySelectorAll('.code-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const target = tab.getAttribute('data-tab');
-      document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.code-pane').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      document.querySelector('.code-pane[data-pane="' + target + '"]').classList.add('active');
+  // Code tabs — delimitado por panel, no global (soporta múltiples code-panels en la página)
+  document.querySelectorAll('.code-panel').forEach(panel => {
+    const tabs = panel.querySelectorAll('.code-tab');
+    const panes = panel.querySelectorAll('.code-pane');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.getAttribute('data-tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        panes.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        panel.querySelector('.code-pane[data-pane="' + target + '"]').classList.add('active');
+      });
     });
   });
 

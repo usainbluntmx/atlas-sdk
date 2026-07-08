@@ -1,6 +1,6 @@
 {
   "name": "@atlas-world/cli",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Atlas World Protocol — CLI para crear y administrar mundos persistentes en Solana",
   "bin": {
     "atlas-cli": "./dist/index.js"
