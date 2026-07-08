@@ -50,6 +50,8 @@ npm run dev
 
 Esto genera una app Next.js ya conectada al **Mundo Demo público** que mantiene el equipo de Atlas. Abre `localhost:3000`, conecta tu wallet de Phantom en Devnet, y en segundos vas a ver progreso real, un leaderboard compartido con otros developers probando el SDK ahora mismo, y botones de recolecta que funcionan de inmediato. Todo se actualiza en vivo, sin recargar la página.
 
+> **Necesitas SOL de Devnet en tu propia wallet.** Cada transacción (mintear tu player, recolectar un recurso) la pagas tú, no el mundo demo — son montos mínimos (fracciones de centavo), pero si tu wallet está en 0, la primera transacción falla. Consíguelo gratis: `solana airdrop 2` desde terminal, o en [faucet.solana.com](https://faucet.solana.com) si el comando falla (el faucet público se satura seguido).
+
 Cuando quieras tu propio mundo en vez del demo: `npx @atlas-world/cli create-world`.
 
 ---
@@ -268,19 +270,61 @@ const historico = await atlas.leaderboard.get(worldId, { epoch: 0 })
 
 ## Eventos del Protocolo
 
-Todos los eventos son emitidos on-chain vía Anchor Events. Suscríbete con `atlas.world.subscribe()` o `atlas.resource.subscribe()` para reaccionar en tiempo real sin polling.
+Todos los eventos son emitidos on-chain vía Anchor Events. Suscríbete con `atlas.world.subscribe()` o `atlas.resource.subscribe()` para reaccionar en tiempo real sin polling — o, si construyes tu propio indexer, con `program.addEventListener()` directo.
 
-| Evento | Cuándo se emite | Campos |
-|---|---|---|
-| `WorldCreated` | Al crear un mundo | `worldId`, `authority`, `name`, `worldType`, `visibility`, `totalResources`, `epochDuration` |
-| `LeaderboardInitialized` | Al crear el leaderboard de un epoch | `worldId`, `epoch` |
-| `PlayerMinted` | Al mintear un player | `worldId`, `owner`, `name`, `metadataUri` |
-| `ResourceCollected` | En cada recolecta exitosa | `worldId`, `epoch`, `wallet`, `resourceType`, `points`, `worldProgress`, `totalResources` |
-| `WorldReset` | Cuando un epoch termina (agotamiento o tiempo) | `worldId`, `completedEpoch`, `newEpoch`, `winner`, `totalCollected` |
-| `PlayerWhitelisted` | Al agregar una wallet a la whitelist (mundos privados) | `worldId`, `member` |
-| `PlayerRemovedFromWhitelist` | Al remover una wallet de la whitelist | `worldId`, `member` |
-| `ProtocolPaused` | Cuando el protocol authority activa el emergency stop | `by` |
-| `ProtocolUnpaused` | Cuando se reactiva el protocolo | `by` |
+### Schema completo (para quien construye un indexer)
+
+**`WorldCreated`**
+```typescript
+{ worldId: number, authority: string, name: string, worldType: number, visibility: number, totalResources: number, epochDuration: number }
+```
+
+**`LeaderboardInitialized`**
+```typescript
+{ worldId: number, epoch: number }
+```
+
+**`PlayerMinted`**
+```typescript
+{ worldId: number, owner: string, name: string, metadataUri: string }
+```
+
+**`ResourceCollected`** — el más frecuente, el que alimenta tu indexer de leaderboard
+```typescript
+{ worldId: number, epoch: number, wallet: string, resourceType: number, points: number, worldProgress: number, totalResources: number }
+```
+
+**`WorldReset`** — dispara la necesidad de `advanceEpoch()` + `createLeaderboard()`
+```typescript
+{ worldId: number, completedEpoch: number, newEpoch: number, winner: string, totalCollected: number }
+```
+
+**`PlayerWhitelisted`** / **`PlayerRemovedFromWhitelist`**
+```typescript
+{ worldId: number, member: string }
+```
+
+**`ProtocolPaused`** / **`ProtocolUnpaused`**
+```typescript
+{ by: string }
+```
+
+### Ejemplo: escuchar eventos crudo (sin el SDK), para tu propio indexer
+
+```typescript
+import { AtlasClient } from '@atlas-world/sdk'
+
+const atlas = AtlasClient.fromKeypair({ network: 'devnet', keypairPath: '~/.config/solana/id.json' })
+
+// program.addEventListener funciona con cualquier evento del contrato,
+// no solo los que el SDK ya envuelve (ResourceCollected, WorldReset)
+const listenerId = atlas.program.addEventListener('ResourceCollected', (event, slot, signature) => {
+  console.log(`[slot ${slot}] wallet ${event.wallet.toBase58()} recolectó +${event.points}pts en mundo ${event.worldId}`)
+  // Aquí insertarías a tu base de datos (Postgres, Supabase, lo que uses)
+})
+
+// atlas.program.removeEventListener(listenerId) cuando termines
+```
 
 Si estás construyendo un indexer o backend propio, estos son los eventos que necesitas escuchar. La definición exacta de cada uno vive en `programs/atlas-sdk/src/events.rs` en el repo del contrato.
 
