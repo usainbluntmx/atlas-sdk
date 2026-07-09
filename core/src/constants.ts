@@ -41,7 +41,13 @@ export const PDA_SEEDS = {
   WHITELIST: 'whitelist',
 } as const
 
-/** Conversión de strings de duración a segundos */
+/**
+ * Conversión de strings de duración a segundos.
+ *
+ * FIX: se agregó '24h' — el README y varios JSDoc lo documentan como
+ * formato válido ("'7d', '24h', '30m' o segundos"), pero faltaba en
+ * este mapa. Detectado por tests automatizados.
+ */
 export const DURATION_MAP: Record<string, number> = {
   '1m': 60,
   '5m': 300,
@@ -49,6 +55,7 @@ export const DURATION_MAP: Record<string, number> = {
   '1h': 3600,
   '6h': 21600,
   '12h': 43200,
+  '24h': 86400,
   '1d': 86400,
   '3d': 259200,
   '7d': 604800,

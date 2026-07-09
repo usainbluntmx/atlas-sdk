@@ -2,16 +2,16 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
 import { Atlas } from "../target/types/atlas";
 import { expect } from "chai";
-import { Keypair, SystemProgram } from "@solana/web3.js";
+import { Keypair, SystemProgram, Transaction } from "@solana/web3.js";
 
 describe("atlas — players, resources & leaderboard", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.Atlas as Program<Atlas>;
 
-  const treasury = Keypair.generate();
   const player = Keypair.generate();
-  const worldId = 0;
+  let worldId: number;
+  let realTreasury: anchor.web3.PublicKey;
 
   const getGlobalConfigPDA = () =>
     anchor.web3.PublicKey.findProgramAddressSync(
@@ -52,21 +52,36 @@ describe("atlas — players, resources & leaderboard", () => {
     )[0];
 
   before(async () => {
-    const sig = await provider.connection.requestAirdrop(
-      player.publicKey,
-      5 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    await provider.connection.confirmTransaction(sig);
-
-    // Setup: protocolo + mundo con cooldown corto para tests rápidos
-    await program.methods
-      .initializeProtocol(treasury.publicKey)
-      .accounts({
-        globalConfig: getGlobalConfigPDA(),
-        authority: provider.wallet.publicKey,
-        systemProgram: SystemProgram.programId,
+    // Transferencia directa en vez de airdrop — evita el rate limit del faucet
+    const tx = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: provider.wallet.publicKey,
+        toPubkey: player.publicKey,
+        lamports: Math.floor(0.2 * anchor.web3.LAMPORTS_PER_SOL),
       })
-      .rpc();
+    );
+    await provider.sendAndConfirm(tx);
+
+    // El protocolo puede ya existir de una corrida anterior contra devnet
+    // persistente — leemos el treasury real en ese caso.
+    try {
+      const existing = await program.account.globalConfig.fetch(getGlobalConfigPDA());
+      realTreasury = existing.treasury;
+    } catch {
+      const treasury = Keypair.generate();
+      await program.methods
+        .initializeProtocol(treasury.publicKey)
+        .accounts({
+          globalConfig: getGlobalConfigPDA(),
+          authority: provider.wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      realTreasury = treasury.publicKey;
+    }
+
+    const globalConfig = await program.account.globalConfig.fetch(getGlobalConfigPDA());
+    worldId = Number(globalConfig.worldCount);
 
     await program.methods
       .createWorld(
@@ -76,6 +91,7 @@ describe("atlas — players, resources & leaderboard", () => {
         new BN(10), // pocos recursos para poder agotar en test
         new BN(604800),
         new BN(2), // cooldown corto: 2 segundos
+        0, // maxDailyCollects — antes faltaba este argumento
         [
           { id: 0, name: "common", points: new BN(1), cooldownSeconds: new BN(0) },
           { id: 1, name: "rare", points: new BN(3), cooldownSeconds: new BN(0) },
@@ -85,7 +101,7 @@ describe("atlas — players, resources & leaderboard", () => {
         globalConfig: getGlobalConfigPDA(),
         worldConfig: getWorldConfigPDA(worldId),
         worldState: getWorldStatePDA(worldId, 0),
-        treasury: treasury.publicKey,
+        treasury: realTreasury,
         authority: provider.wallet.publicKey,
         systemProgram: SystemProgram.programId,
       })
@@ -106,6 +122,7 @@ describe("atlas — players, resources & leaderboard", () => {
     await program.methods
       .mintPlayer("TestHero", "https://gateway.irys.xyz/test")
       .accounts({
+        globalConfig: getGlobalConfigPDA(), // antes faltaba — requerido para el check de pauseProtocol
         worldConfig: getWorldConfigPDA(worldId),
         player: getPlayerPDA(worldId, player.publicKey),
         owner: player.publicKey,
@@ -124,6 +141,7 @@ describe("atlas — players, resources & leaderboard", () => {
     await program.methods
       .collectResource(1) // rare
       .accounts({
+        globalConfig: getGlobalConfigPDA(), // antes faltaba
         worldConfig: getWorldConfigPDA(worldId),
         worldState: getWorldStatePDA(worldId, 0),
         player: getPlayerPDA(worldId, player.publicKey),
@@ -151,6 +169,7 @@ describe("atlas — players, resources & leaderboard", () => {
       await program.methods
         .collectResource(7) // no existe en este mundo
         .accounts({
+          globalConfig: getGlobalConfigPDA(),
           worldConfig: getWorldConfigPDA(worldId),
           worldState: getWorldStatePDA(worldId, 0),
           player: getPlayerPDA(worldId, player.publicKey),
